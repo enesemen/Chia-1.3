@@ -11,7 +11,6 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname),
-      'html2pdf.js': path.resolve(__dirname, 'src/services/html2pdfShim.ts'),
     },
   },
   server: {

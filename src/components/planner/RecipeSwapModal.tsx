@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Search, Sparkles, Check } from 'lucide-react';
 import { Recipe, DietType } from '../../types/nutrition';
 import { PlannedMealItem, PersonalizedRecipeCopy } from '../../types/menuPlanner';
@@ -23,6 +23,19 @@ export const RecipeSwapModal: React.FC<RecipeSwapModalProps> = ({
   const [filterDietCompatibleOnly, setFilterDietCompatibleOnly] = useState(true);
   const [autoAdaptToTarget, setAutoAdaptToTarget] = useState(true);
 
+  const filteredCandidates = useMemo(() => {
+    if (!isOpen || !meal) return [];
+    const q = search.trim().toLowerCase();
+    return allRecipes.filter(r => {
+      if (r.isDraft) return false;
+      if (filterBookletOnly && activeBookletRecipeIds?.length && !activeBookletRecipeIds.includes(r.id)) return false;
+      if (filterDietCompatibleOnly && dietCriteria.length > 0 && !isRecipeCompatibleWithDiet(r, dietCriteria, excludedAllergies)) return false;
+      if (filterTransportOnly && r.transportability !== 'Taşımaya Uygun') return false;
+      if (!q) return true;
+      return r.name.toLowerCase().includes(q) || r.family?.toLowerCase().includes(q) || r.category?.toLowerCase().includes(q);
+    });
+  }, [isOpen, meal, allRecipes, filterBookletOnly, activeBookletRecipeIds, filterDietCompatibleOnly, dietCriteria, excludedAllergies, filterTransportOnly, search]);
+
   if (!isOpen || !meal) return null;
 
   const targetProtein = Number((meal.calculatedExchanges?.protein ?? 2).toFixed(1));
@@ -30,21 +43,9 @@ export const RecipeSwapModal: React.FC<RecipeSwapModalProps> = ({
   const targetFat = Number((meal.calculatedExchanges?.fat ?? 1).toFixed(1));
   const targetVeg = Number((meal.calculatedExchanges?.vegetable ?? 0).toFixed(1));
 
-  const filteredCandidates = allRecipes.filter(r => {
-    if (r.isDraft) return false;
-    if (filterBookletOnly && activeBookletRecipeIds?.length && !activeBookletRecipeIds.includes(r.id)) return false;
-    if (filterDietCompatibleOnly && dietCriteria.length > 0 && !isRecipeCompatibleWithDiet(r, dietCriteria, excludedAllergies)) return false;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      if (!r.name.toLowerCase().includes(q) && !r.family?.toLowerCase().includes(q) && !r.category?.toLowerCase().includes(q)) return false;
-    }
-    if (filterTransportOnly && r.transportability !== 'Taşımaya Uygun') return false;
-    return true;
-  });
-
   const handleApplySelection = (candidate: Recipe) => {
     if (autoAdaptToTarget) {
-      const adapted = adaptRecipeToArchetypeAndMeal(candidate, 'M1400', meal.targetCalories, { protein: targetProtein, carb: targetCarb, fat: targetFat, vegetable: targetVeg }, meal.targetMacros);
+      const adapted = adaptRecipeToArchetypeAndMeal(candidate, 'M1400', meal.targetCalories, meal.targetMacros);
       const personalizedCopy = personalizeRecipeForMeal(candidate, adapted.calculatedExchanges, { fullName: clientName || 'Danışan' }, `plan_${clientName || 'Danisan'}_${dayName}`, meal.mealName, adapted.calculatedNutrition, adapted.portionMultiplier);
       onSelectRecipe(candidate, personalizedCopy);
     } else {
@@ -134,9 +135,9 @@ export const RecipeSwapModal: React.FC<RecipeSwapModalProps> = ({
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-xs sm:text-sm text-slate-900 font-serif group-hover:text-amber-950 truncate">{recipe.name}</span>
-                      {isCurrent && <span className="text-[10px] px-1.5 py-0.2 bg-emerald-700 text-white font-bold rounded">Mevcut</span>}
-                      {recipe.transportability === 'Taşımaya Uygun' && <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 font-bold rounded">📦</span>}
-                      <span className="text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-600 font-mono rounded">{recipe.dietType || 'STD'}</span>
+                      {isCurrent && <span className="text-[10px] px-1.5 py-0.5 bg-emerald-700 text-white font-bold rounded">Mevcut</span>}
+                      {recipe.transportability === 'Taşımaya Uygun' && <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded">📦</span>}
+                      <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 font-mono rounded">{recipe.dietType || 'STD'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
                       <span className="font-sans">{recipe.category}</span><span>·</span>

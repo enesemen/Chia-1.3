@@ -6,7 +6,7 @@ import { RecipeWizard } from './components/recipes/RecipeWizard';
 import { RecipeDetailModal } from './components/recipes/RecipeDetailModal';
 import { FoodsDatabaseView } from './components/foods/FoodsDatabaseView';
 import { ExchangeRulesView } from './components/exchanges/ExchangeRulesView';
-import { TemplatesView } from './components/templates/TemplatesView';
+import { MenuPlannerView } from './components/planner/MenuPlannerView';
 
 const MainWorkspace: React.FC = () => {
   const { activeModule } = useNutrition();
@@ -17,7 +17,7 @@ const MainWorkspace: React.FC = () => {
         {activeModule === 'recipes' && <RecipeList />}
         {activeModule === 'foods' && <FoodsDatabaseView />}
         {activeModule === 'exchanges' && <ExchangeRulesView />}
-        {activeModule === 'templates' && <TemplatesView />}
+        {activeModule === 'templates' && <MenuPlannerView />}
       </div>
     </main>
   );

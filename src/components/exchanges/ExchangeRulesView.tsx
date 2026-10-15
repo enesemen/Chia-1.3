@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Layers, Zap, Search, Plus, Edit, Trash2, X, Save, Filter, Info, RotateCcw, AlertTriangle
+  Layers, Zap, Search, Plus, Edit, Trash2, X, Save, Filter, Info, RotateCcw
 } from 'lucide-react';
 import { ExchangeFoodItem, INITIAL_EXCHANGE_FOODS } from '../../data/mockExchangeFoods';
-import { ChiaAssistantBanner } from '../common/ChiaMascot';
+import { ChiaAssistantBanner, ConfirmModal } from '../common/ChiaMascot';
 
 const LOCAL_STORAGE_KEY = 'nutriplan_exchange_foods_v1';
 
@@ -51,14 +51,17 @@ export const ExchangeRulesView: React.FC = () => {
     portion: '1 porsiyon', amountNet: '30 g', stateNote: '30 g', equivalents: '', clinicalNote: ''
   });
 
-  const filteredFoods = exchangeFoods.filter(item => {
-    const matchesGroup = selectedGroup === 'Tümü' || item.group === selectedGroup;
+  const filteredFoods = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    const matchesQuery =
-      !query || item.name.toLowerCase().includes(query) || item.group.toLowerCase().includes(query) ||
-      item.subGroup.toLowerCase().includes(query) || item.equivalents.toLowerCase().includes(query) || item.clinicalNote.toLowerCase().includes(query);
-    return matchesGroup && matchesQuery;
-  });
+    return exchangeFoods.filter(item => {
+      if (selectedGroup !== 'Tümü' && item.group !== selectedGroup) return false;
+      if (!query) return true;
+      return (
+        item.name.toLowerCase().includes(query) || item.group.toLowerCase().includes(query) ||
+        item.subGroup.toLowerCase().includes(query) || item.equivalents.toLowerCase().includes(query) || item.clinicalNote.toLowerCase().includes(query)
+      );
+    });
+  }, [exchangeFoods, selectedGroup, searchQuery]);
 
   const handleOpenAddModal = () => {
     setEditingItem(null);
@@ -264,37 +267,25 @@ export const ExchangeRulesView: React.FC = () => {
         </div>
       )}
 
-      {itemToDelete && (
-        <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm p-6 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto"><AlertTriangle className="w-6 h-6" /></div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Değişim Besinini Sil</h3>
-              <p className="text-xs text-slate-500 mt-1"><strong className="text-slate-800">"{itemToDelete.name}"</strong> isimli değişim besinini listeden silmek istediğinize emin misiniz?</p>
-            </div>
-            <div className="flex items-center gap-3 pt-2">
-              <button type="button" onClick={() => setItemToDelete(null)} className="flex-1 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer">Vazgeç</button>
-              <button type="button" onClick={() => { setExchangeFoods(prev => prev.filter(f => f.id !== itemToDelete.id)); setItemToDelete(null); }} className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-2xs cursor-pointer">Evet, Sil</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={Boolean(itemToDelete)}
+        title="Değişim Besinini Sil"
+        message={`"${itemToDelete?.name || ''}" isimli değişim besinini listeden silmek istediğinize emin misiniz?`}
+        confirmText="Evet, Sil"
+        type="danger"
+        onCancel={() => setItemToDelete(null)}
+        onConfirm={() => { if (itemToDelete) setExchangeFoods(prev => prev.filter(f => f.id !== itemToDelete.id)); setItemToDelete(null); }}
+      />
 
-      {showResetConfirm && (
-        <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm p-6 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto"><RotateCcw className="w-6 h-6" /></div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Varsayılan Listeye Sıfırla</h3>
-              <p className="text-xs text-slate-500 mt-1">Tüm değişim besinleri orijinal 159 besinlik klinik referans listesine sıfırlansın mı?</p>
-            </div>
-            <div className="flex items-center gap-3 pt-2">
-              <button type="button" onClick={() => setShowResetConfirm(false)} className="flex-1 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer">Vazgeç</button>
-              <button type="button" onClick={() => { setExchangeFoods(INITIAL_EXCHANGE_FOODS); localStorage.removeItem(LOCAL_STORAGE_KEY); setShowResetConfirm(false); }} className="flex-1 py-2 rounded-xl bg-amber-900 hover:bg-amber-950 text-white text-xs font-semibold shadow-2xs cursor-pointer">Sıfırla</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showResetConfirm}
+        title="Varsayılan Listeye Sıfırla"
+        message="Tüm değişim besinleri orijinal 159 besinlik klinik referans listesine sıfırlansın mı?"
+        confirmText="Sıfırla"
+        type="warning"
+        onCancel={() => setShowResetConfirm(false)}
+        onConfirm={() => { setExchangeFoods(INITIAL_EXCHANGE_FOODS); localStorage.removeItem(LOCAL_STORAGE_KEY); setShowResetConfirm(false); }}
+      />
     </div>
   );
 };

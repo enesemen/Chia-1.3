@@ -1,9 +1,4 @@
-import html2pdf from './html2pdfShim';
 import { Recipe } from '../types/nutrition';
-
-export interface PDFExportOptions {
-  filename?: string; margin?: [number, number, number, number]; scale?: number; orientation?: 'portrait' | 'landscape';
-}
 
 export const compressImageFile = (file: File, maxWidth = 800, quality = 0.8): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -118,18 +113,4 @@ export const generateRecipeCardPrintableHtml = (recipe: Recipe, ingredientLines:
   <div class="footer"><span>Dyt. Zeynep Hale Kliniği · Hasta Bilgilendirme Kartı</span><span>Sağlıklı Günler Dileriz</span></div>
   <script>window.onload=function(){setTimeout(function(){window.print();},400);};</script>
 </body></html>`;
-};
-
-export const exportElementToPDF = async (element: HTMLElement, filename: string, options: PDFExportOptions = {}): Promise<void> => {
-  const safeName = (filename || 'Diyet_Plani_Teslim_Dosyasi').replace(/[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ_-]/g, '_').replace(/_+/g, '_');
-  const opt = {
-    margin: options.margin || [10, 10, 10, 10],
-    filename: safeName.endsWith('.pdf') ? safeName : `${safeName}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: options.scale || 2, useCORS: true, allowTaint: true, logging: false, letterRendering: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: options.orientation || 'portrait' },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'], before: '.page-break-after, .page-break-before', avoid: '.avoid-break' }
-  };
-  const worker = typeof html2pdf === 'function' ? html2pdf() : (html2pdf as any).default();
-  await worker.set(opt).from(element).save();
 };

@@ -28,7 +28,6 @@ interface NutritionContextType {
   turKompStats: TurKompDatabaseStats;
   calculateIngredientNutrition: (foodOrId: FoodItem | string, amount: number, unit: string) => IngredientCalculationResult;
   calculateRecipeTotals: (ingredients: RecipeIngredient[]) => ReturnType<typeof turKompMockService.calculateRecipeTotals>;
-  recalculateRecipe: (recipe: Recipe) => Recipe;
   clients: ClientProfile[];
   activePlannerClientId: string | null; setActivePlannerClientId: (id: string | null) => void;
   stats: {
@@ -54,6 +53,14 @@ function loadStoredArray<T>(key: string, fallback: T[]): T[] {
   }
 }
 
+function mergeWithSeed<T extends { id: string }>(key: string, seeds: T[]): T[] {
+  const stored = loadStoredArray(key, seeds);
+  const seen = new Set(stored.map(item => item.id));
+  const merged = [...stored];
+  for (const seed of seeds) if (!seen.has(seed.id)) merged.push(seed);
+  return merged;
+}
+
 function useDebouncedStorage<T>(key: string, value: T, delay = 300) {
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -67,25 +74,10 @@ export const NutritionProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [activeModule, setActiveModule] = useState<ActiveModule>('recipes');
   const [activePlannerClientId, setActivePlannerClientId] = useState<string | null>(null);
 
-  const [recipes, setRecipes] = useState<Recipe[]>(() => {
-    const stored = loadStoredArray(RECIPES_STORAGE_KEY, INITIAL_RECIPES);
-    const storedMap = new Map(stored.map(r => [r.id, r]));
-    const merged = [...stored];
-    INITIAL_RECIPES.forEach(seed => {
-      if (!storedMap.has(seed.id)) merged.push(seed);
-    });
-    return merged.map(r => turKompMockService.recalculateRecipe(r));
-  });
-
-  const [foods, setFoods] = useState<FoodItem[]>(() => {
-    const stored = loadStoredArray(FOODS_STORAGE_KEY, INITIAL_FOODS);
-    const storedMap = new Map(stored.map(f => [f.id, f]));
-    const merged = [...stored];
-    INITIAL_FOODS.forEach(seed => {
-      if (!storedMap.has(seed.id)) merged.push(seed);
-    });
-    return merged;
-  });
+  const [recipes, setRecipes] = useState<Recipe[]>(() =>
+    mergeWithSeed(RECIPES_STORAGE_KEY, INITIAL_RECIPES).map(r => (r.dietaryFlags ? r : turKompMockService.recalculateRecipe(r)))
+  );
+  const [foods, setFoods] = useState<FoodItem[]>(() => mergeWithSeed(FOODS_STORAGE_KEY, INITIAL_FOODS));
 
   const [booklets, setBooklets] = useState<RecipeBooklet[]>(() => loadStoredArray(BOOKLETS_STORAGE_KEY, INITIAL_BOOKLETS));
   // TODO [ORBIO-INTEGRATION]: Orbio ana danışanlar modülüyle birleştiğinde INITIAL_CLIENTS silinecek ve Orbio state'ine bağlanacaktır.
@@ -134,7 +126,6 @@ export const NutritionProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const calculateIngredientNutrition = useCallback((foodOrId: FoodItem | string, amount: number, unit: string) => turKompMockService.calculateIngredient(foodOrId, amount, unit), []);
   const calculateRecipeTotals = useCallback((ingredients: RecipeIngredient[]) => turKompMockService.calculateRecipeTotals(ingredients), []);
-  const recalculateRecipe = useCallback((recipe: Recipe): Recipe => turKompMockService.recalculateRecipe(recipe), []);
 
   const saveRecipe = useCallback((recipe: Recipe) => {
     const deterministicallyCalculatedRecipe = turKompMockService.recalculateRecipe(recipe);
@@ -173,25 +164,28 @@ export const NutritionProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   }, [recipes, filters]);
 
-  const turKompStats = turKompMockService.getStats();
+  const turKompStats = useMemo(() => turKompMockService.getStats(), [foods.length]);
 
-  const stats = useMemo(() => ({
-    totalRecipes: recipes.length, activeRecipes: recipes.filter(r => !r.isDraft).length,
-    draftRecipes: recipes.filter(r => r.isDraft).length, totalFoods: foods.length,
-    turKompCount: turKompStats.turKompCount, usdaCount: turKompStats.usdaCount
-  }), [recipes, foods.length, turKompStats.turKompCount, turKompStats.usdaCount]);
+  const stats = useMemo(() => {
+    const activeRecipes = recipes.filter(r => !r.isDraft).length;
+    return {
+      totalRecipes: recipes.length, activeRecipes,
+      draftRecipes: recipes.length - activeRecipes, totalFoods: foods.length,
+      turKompCount: turKompStats.turKompCount, usdaCount: turKompStats.usdaCount
+    };
+  }, [recipes, foods.length, turKompStats.turKompCount, turKompStats.usdaCount]);
 
   const contextValue = useMemo(() => ({
     activeModule, setActiveModule, recipes, recipeMap, filters, setFilters, filteredRecipes, saveRecipe, deleteRecipe,
     booklets, saveBooklet, deleteBooklet, addRecipesToBooklet, isWizardOpen, editingRecipe, openWizard, closeWizard,
     selectedRecipeForDetail, openDetail, closeDetail, foods, addCustomFood, turKompService: turKompMockService,
-    turKompStats, calculateIngredientNutrition, calculateRecipeTotals, recalculateRecipe, clients,
+    turKompStats, calculateIngredientNutrition, calculateRecipeTotals, clients,
     activePlannerClientId, setActivePlannerClientId, stats
   }), [
     activeModule, recipes, recipeMap, filters, filteredRecipes, saveRecipe, deleteRecipe,
     booklets, saveBooklet, deleteBooklet, addRecipesToBooklet, isWizardOpen, editingRecipe, openWizard, closeWizard,
     selectedRecipeForDetail, openDetail, closeDetail, foods, addCustomFood, turKompStats,
-    calculateIngredientNutrition, calculateRecipeTotals, recalculateRecipe, clients, activePlannerClientId, stats
+    calculateIngredientNutrition, calculateRecipeTotals, clients, activePlannerClientId, stats
   ]);
 
   return <NutritionContext.Provider value={contextValue}>{children}</NutritionContext.Provider>;

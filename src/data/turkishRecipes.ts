@@ -6,14 +6,15 @@ import { TURKISH_DINNER_RECIPES } from './turkishDinnerRecipes';
 
 export { TURKISH_BREAKFAST_RECIPES, TURKISH_SNACK_RECIPES, TURKISH_DINNER_RECIPES };
 
-const GLUTEN_TERMS = ['buğday', 'arpa', 'çavdar', 'durum', 'kuskus', 'bulgur', 'irmik', 'makarna', 'un', 'şehriye', 'bisküvi', 'ekmek', 'yufka', 'galeta', 'simit', 'grissini', 'bazlama', 'lavaş'];
-const DAIRY_TERMS = ['süt', 'yoğurt', 'peynir', 'tereyağı', 'krema', 'kaymak', 'lor', 'kaşar', 'kefir', 'labne', 'hellim', 'tulum', 'cacık', 'ayran'];
-const HIGH_CARB_TERMS = ['şeker', 'bal', 'pekmez', 'pirinç', 'makarna', 'patates', 'muz', 'ekmek', 'un', 'bulgur', 'mısır', 'kinoa', 'simit', 'nohut', 'fasulye', 'mercimek'];
-const ELIM_TRIGGERS = ['buğday', 'arpa', 'çavdar', 'un', 'süt', 'peynir', 'yoğurt', 'tereyağı', 'krema', 'yumurta', 'soya', 'patlıcan', 'yer fıstığı', 'mısır', 'işlenmiş'];
-const HIGH_FODMAP = ['soğan', 'sarımsak', 'pırasa', 'karnabahar', 'mantar', 'kuru fasulye', 'nohut', 'mercimek', 'bakla', 'elma', 'armut', 'karpuz', 'bal'];
-const HIGH_HISTAMINE = ['eski kaşar', 'parmesan', 'rokfor', 'tulum', 'konserve', 'ton balığı', 'salamura', 'turşu', 'sirke', 'ıspanak', 'domates', 'avokado', 'patlıcan', 'şarküteri', 'sosis', 'sucuk', 'salam'];
-const ANTI_FERTILITY = ['margarin', 'rafine şeker', 'işlenmiş', 'sosis', 'salam', 'kızartma'];
-const MEAT_TERMS = ['et', 'dana', 'kuzu', 'tavuk', 'balık', 'köfte', 'hindi', 'kıyma', 'somon', 'levrek', 'çipura', 'ton balığı', 'karides', 'sakatat', 'ciğer', 'bonfile', 'antrikot', 'sucuk'];
+const RE_GLUTEN = /buğday|arpa|çavdar|durum|kuskus|bulgur|irmik|makarna|un|şehriye|bisküvi|ekmek|yufka|galeta|simit|grissini|bazlama|lavaş/;
+const RE_DAIRY = /süt|yoğurt|peynir|tereyağı|krema|kaymak|lor|kaşar|kefir|labne|hellim|tulum|cacık|ayran/;
+const RE_DAIRY_SAFE = /laktozsuz|bitkisel|badem|hindistan cevizi|soya sütü/;
+const RE_HIGH_CARB = /şeker|bal|pekmez|pirinç|makarna|patates|muz|ekmek|un|bulgur|mısır|kinoa|simit|nohut|fasulye|mercimek/;
+const RE_ELIM = /buğday|arpa|çavdar|un|süt|peynir|yoğurt|tereyağı|krema|yumurta|soya|patlıcan|yer fıstığı|mısır|işlenmiş/;
+const RE_FODMAP = /soğan|sarımsak|pırasa|karnabahar|mantar|kuru fasulye|nohut|mercimek|bakla|elma|armut|karpuz|bal/;
+const RE_HISTAMINE = /eski kaşar|parmesan|rokfor|tulum|konserve|ton balığı|salamura|turşu|sirke|ıspanak|domates|avokado|patlıcan|şarküteri|sosis|sucuk|salam/;
+const RE_ANTI_FERT = /margarin|rafine şeker|işlenmiş|sosis|salam|kızartma/;
+const RE_MEAT = /et|dana|kuzu|tavuk|balık|köfte|hindi|kıyma|somon|levrek|çipura|ton balığı|karides|sakatat|ciğer|bonfile|antrikot|sucuk/;
 
 export function computeRecipeDietaryFlags(recipe: Recipe): RecipeDietaryFlags {
   const rName = (recipe.name || '').toLowerCase();
@@ -21,14 +22,14 @@ export function computeRecipeDietaryFlags(recipe: Recipe): RecipeDietaryFlags {
   const allText = `${rName} ${(recipe.category || '').toLowerCase()} ${(recipe.family || '').toLowerCase()} ${(recipe.description || '').toLowerCase()} ${(recipe.kitchenNotes || '').toLowerCase()} ${(recipe.clinicalNote || '').toLowerCase()} ${ingList.join(' ')} ${(recipe.tags || []).join(' ').toLowerCase()}`;
 
   return {
-    hasGluten: ingList.some(ing => GLUTEN_TERMS.some(t => ing.includes(t) && !ing.includes('glutensiz'))),
-    hasDairy: ingList.some(ing => DAIRY_TERMS.some(t => ing.includes(t) && !/laktozsuz|bitkisel|badem|hindistan cevizi|soya sütü/.test(ing))),
-    hasHighCarb: ingList.some(ing => HIGH_CARB_TERMS.some(t => ing.includes(t) && !ing.includes('unsuz') && !ing.includes('şekersiz'))),
-    hasElimTrigger: ingList.some(ing => ELIM_TRIGGERS.some(t => ing.includes(t) && !ing.includes('glutensiz') && !ing.includes('laktozsuz'))),
-    hasHighFodmap: ingList.some(ing => HIGH_FODMAP.some(t => ing.includes(t))),
-    hasHighHistamine: ingList.some(ing => HIGH_HISTAMINE.some(t => ing.includes(t))),
-    hasAntiFertility: ingList.some(ing => ANTI_FERTILITY.some(t => ing.includes(t))),
-    hasMeat: ingList.some(ing => MEAT_TERMS.some(t => ing.includes(t))) || MEAT_TERMS.some(t => rName.includes(t) && !rName.includes('etsiz')),
+    hasGluten: ingList.some(ing => !ing.includes('glutensiz') && RE_GLUTEN.test(ing)),
+    hasDairy: ingList.some(ing => !RE_DAIRY_SAFE.test(ing) && RE_DAIRY.test(ing)),
+    hasHighCarb: ingList.some(ing => !ing.includes('unsuz') && !ing.includes('şekersiz') && RE_HIGH_CARB.test(ing)),
+    hasElimTrigger: ingList.some(ing => !ing.includes('glutensiz') && !ing.includes('laktozsuz') && RE_ELIM.test(ing)),
+    hasHighFodmap: ingList.some(ing => RE_FODMAP.test(ing)),
+    hasHighHistamine: ingList.some(ing => RE_HISTAMINE.test(ing)),
+    hasAntiFertility: ingList.some(ing => RE_ANTI_FERT.test(ing)),
+    hasMeat: ingList.some(ing => RE_MEAT.test(ing)) || (!rName.includes('etsiz') && RE_MEAT.test(rName)),
     allText
   };
 }

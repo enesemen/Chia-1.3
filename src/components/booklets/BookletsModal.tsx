@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
-  X, Plus, BookOpen, Printer, Trash2, Edit2, FolderPlus, Check, ArrowLeft, AlertTriangle
+  X, Plus, BookOpen, Printer, Trash2, Edit2, FolderPlus, Check, ArrowLeft
 } from 'lucide-react';
 import { useNutrition } from '../../context/NutritionContext';
 import { RecipeBooklet } from '../../types/nutrition';
 import { BookletPrintView } from './BookletPrintView';
+import { ConfirmModal } from '../common/ChiaMascot';
 
 interface BookletsModalProps {
   isOpen: boolean; onClose: () => void; preSelectedRecipeIds?: string[];
@@ -18,6 +19,16 @@ const COVER_THEMES = [
   { id: 'rose', label: 'Gül / Mürdüm', class: 'bg-rose-900 text-white' }
 ] as const;
 
+const createBookletForm = (b?: Partial<RecipeBooklet>, fallbackIds: string[] = []) => ({
+  title: b?.title ?? (fallbackIds.length > 0 ? 'Glutensiz Tatlı Alternatifler - Diyetisyen Hale' : ''),
+  subtitle: b?.subtitle ?? 'Hassas Sindirim & Özel Tarif Seçkisi',
+  authorName: b?.authorName ?? 'Dyt. Zeynep Hale Kocaoğlu',
+  description: b?.description ?? 'Diyetisyen tarafından özenle kurgulanmış porsiyonlu tarif kitapçığı.',
+  coverTheme: (b?.coverTheme ?? 'amber') as 'amber' | 'emerald' | 'stone' | 'indigo' | 'rose',
+  selectedRecipeIds: b?.recipeIds ?? fallbackIds,
+  notes: b?.notes ?? ''
+});
+
 export const BookletsModal: React.FC<BookletsModalProps> = ({ isOpen, onClose, preSelectedRecipeIds = [] }) => {
   const { booklets, recipes, saveBooklet, deleteBooklet } = useNutrition();
 
@@ -25,29 +36,12 @@ export const BookletsModal: React.FC<BookletsModalProps> = ({ isOpen, onClose, p
   const [bookletToDelete, setBookletToDelete] = useState<RecipeBooklet | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(preSelectedRecipeIds.length > 0);
   const [editingBookletId, setEditingBookletId] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState({
-    title: preSelectedRecipeIds.length > 0 ? 'Glutensiz Tatlı Alternatifler - Diyetisyen Hale' : '',
-    subtitle: 'Hassas Sindirim & Özel Tarif Seçkisi',
-    authorName: 'Dyt. Zeynep Hale Kocaoğlu',
-    description: 'Diyetisyen tarafından özenle kurgulanmış porsiyonlu tarif kitapçığı.',
-    coverTheme: 'amber' as 'amber' | 'emerald' | 'stone' | 'indigo' | 'rose',
-    selectedRecipeIds: preSelectedRecipeIds,
-    notes: ''
-  });
+  const [formData, setFormData] = useState(() => createBookletForm(undefined, preSelectedRecipeIds));
 
   if (!isOpen) return null;
 
   const handleOpenCreateForm = () => {
-    setFormData({
-      title: 'Glutensiz Tatlı Alternatifler - Diyetisyen Hale',
-      subtitle: 'Hassas Sindirim & Özel Tarif Seçkisi',
-      authorName: 'Dyt. Zeynep Hale Kocaoğlu',
-      description: 'Diyetisyen tarafından özenle kurgulanmış porsiyonlu tarif kitapçığı.',
-      coverTheme: 'amber',
-      selectedRecipeIds: preSelectedRecipeIds.length > 0 ? preSelectedRecipeIds : [],
-      notes: ''
-    });
+    setFormData(createBookletForm({ title: 'Glutensiz Tatlı Alternatifler - Diyetisyen Hale' }, preSelectedRecipeIds));
     setEditingBookletId(null);
     setIsCreatingNew(true);
   };
@@ -72,10 +66,7 @@ export const BookletsModal: React.FC<BookletsModalProps> = ({ isOpen, onClose, p
   };
 
   const handleEditBooklet = (b: RecipeBooklet) => {
-    setFormData({
-      title: b.title, subtitle: b.subtitle || '', authorName: b.authorName || 'Dyt. Zeynep Hale Kocaoğlu',
-      description: b.description || '', coverTheme: b.coverTheme || 'amber', selectedRecipeIds: b.recipeIds || [], notes: b.notes || ''
-    });
+    setFormData(createBookletForm(b));
     setEditingBookletId(b.id);
     setIsCreatingNew(true);
   };
@@ -221,21 +212,15 @@ export const BookletsModal: React.FC<BookletsModalProps> = ({ isOpen, onClose, p
 
       {activePrintBooklet && <BookletPrintView booklet={activePrintBooklet} recipes={recipes} onClose={() => setActivePrintBooklet(null)} />}
 
-      {bookletToDelete && (
-        <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden text-slate-900 animate-in zoom-in-95 p-6 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto"><AlertTriangle className="w-6 h-6 text-rose-600" /></div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Silmek İstediğinize Emin Misiniz?</h3>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed"><span className="font-semibold text-slate-800">"{bookletToDelete.title}"</span> kitapçığı ve içeriğindeki gruplandırma silinecektir. Bu işlem geri alınamaz.</p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button type="button" onClick={() => setBookletToDelete(null)} className="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors cursor-pointer flex-1">Vazgeç</button>
-              <button type="button" onClick={() => { deleteBooklet(bookletToDelete.id); setBookletToDelete(null); setIsCreatingNew(false); setEditingBookletId(null); }} className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-colors cursor-pointer flex-1 shadow-2xs">Evet, Kalıcı Olarak Sil</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={Boolean(bookletToDelete)}
+        title="Silmek İstediğinize Emin Misiniz?"
+        message={`"${bookletToDelete?.title || ''}" kitapçığı ve içeriğindeki gruplandırma silinecektir. Bu işlem geri alınamaz.`}
+        confirmText="Evet, Kalıcı Olarak Sil"
+        type="danger"
+        onCancel={() => setBookletToDelete(null)}
+        onConfirm={() => { if (bookletToDelete) deleteBooklet(bookletToDelete.id); setBookletToDelete(null); setIsCreatingNew(false); setEditingBookletId(null); }}
+      />
     </>
   );
 };

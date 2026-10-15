@@ -41,11 +41,6 @@ export interface MacroComplianceResult {
   fatDiff: number; fatPctDiff: number; messages: string[]; needsReoptimization: boolean;
 }
 
-export interface MealAlternativeOption {
-  id: string; name: string; type: 'equivalent' | 'macro_different'; calories: number;
-  protein: number; carbs: number; fat: number; fiber: number; grams: number; warning?: string; isSelected?: boolean;
-}
-
 export interface PlannerClientData {
   clientId?: string; fullName: string; age: number; gender: 'Kadın' | 'Erkek';
   heightCm: number; weightKg: number; targetWeightKg?: number; activityLevel: ActivityLevelOption;
@@ -76,7 +71,7 @@ export interface PlannedMealItem {
   mealName: MealPoolOption; mealRole: MealRole; targetCalories: number; targetPercentage: number;
   targetMacros?: { calories: number; proteinG: number; carbG: number; fatG: number };
   macroCompliance?: { isCompliant: boolean; energyOk: boolean; proteinOk: boolean; carbOk: boolean; fatOk: boolean; messages: string[] };
-  alternatives?: MealAlternativeOption[]; note?: string; isPortableOnly: boolean;
+  note?: string; isPortableOnly: boolean;
   selectedRecipe: Recipe | null; adaptedRecipe?: PersonalizedRecipeCopy; fallbackReason?: string;
   calculatedNutrition: RecipeTotalNutrition; calculatedExchanges: RecipeExchanges; isManuallySwapped?: boolean;
 }
@@ -94,14 +89,6 @@ export interface WeeklyMenuPlan {
   id: string; planTitle?: string; client: PlannerClientData; selectedMeals: SelectedMealConfig[];
   daySchedules: DayScheduleConfig[]; days: PlannedDayMenu[]; targetMacroRatios?: MacroRatioConfig;
   targetDailyMacros?: DailyMacroTargetGrams;
-  overallMacroCompliance?: {
-    isFullyCompliant: boolean;
-    clinicalChecklist: {
-      energyOk: boolean; proteinOk: boolean; carbOk: boolean; fatOk: boolean; mealsOk: boolean;
-      exchangesOk: boolean; databaseOk: boolean; recipesOk: boolean; alternativesOk: boolean; realValuesOk: boolean;
-    };
-    criticalBlockers: string[];
-  };
   weeklyStats: {
     averageDailyCalories: number; repeatCountByRecipe: Record<string, number>; uniqueRecipeCount?: number;
     estimatedCookCount?: number; prepTimeSavingsPercent?: number; portableMealCount: number; warnings: string[];

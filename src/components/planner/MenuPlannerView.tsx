@@ -11,7 +11,7 @@ import {
 import {
   DAYS_OF_WEEK, ARCHETYPE_PRESETS, sortMealsByCanonicalOrder, autoDistributeMealPercentages,
   calculateBMR, calculateBMI, calculateTargetEnergyFromPAL, determineDefaultArchetype,
-  generateWeeklyMenuPlan, swapRecipeInDayMenu, optimizeDayMenuMacros
+  generateWeeklyMenuPlan, swapRecipeInDayMenu, optimizeDayMenuMacros, normalizeDietCriterion
 } from '../../services/menuPlanningEngine';
 import { calculateTargetMacroGrams } from '../../utils/nutritionCalculator';
 import { RecipeSwapModal } from './RecipeSwapModal';
@@ -28,16 +28,6 @@ const DIET_CRITERIA_OPTIONS: { id: DietType; label: string }[] = [
   { id: 'Histamin', label: 'Histamin' },
   { id: 'Fertilite', label: 'Fertilite' }
 ];
-
-const normalizeDietCriterion = (pref?: DietType): DietType[] => {
-  if (!pref || pref === 'STD' || pref === 'Standart (STD)') return ['Standart (STD)'];
-  if (pref === 'GF' || pref === 'Glutensiz (GF)') return ['Glutensiz (GF)'];
-  if (pref === 'LF' || pref === 'Laktozsuz (LF)') return ['Laktozsuz (LF)'];
-  if (pref === 'GF + LF' || pref === 'GF+LF') return ['Glutensiz (GF)', 'Laktozsuz (LF)'];
-  if (pref === 'Eliminasyon') return ['Eliminasyon (4\'lü)'];
-  if (pref === 'FODMAP') return ['Düşük FODMAP'];
-  return [pref];
-};
 
 const COMMON_ALLERGEN_SUGGESTIONS = ['Gluten', 'Laktoz', 'Yer Fıstığı', 'Kabuklu Deniz Ürünleri', 'Soya', 'Yumurta', 'Susam', 'Fındık / Ceviz'];
 
@@ -144,7 +134,10 @@ export const MenuPlannerView: React.FC = () => {
   const calculatedBMR = useMemo(() => calculateBMR(gender, weightKg || 60, heightCm || 160, age || 30, bmrFormula), [gender, weightKg, heightCm, age, bmrFormula]);
   const energyAnalysis = useMemo(() => calculateTargetEnergyFromPAL(calculatedBMR, activityLevel, weightKg, targetWeightKg), [calculatedBMR, activityLevel, weightKg, targetWeightKg]);
 
-  const archetypeRecommendation = useMemo(() => determineDefaultArchetype(energyAnalysis.targetEnergy), [energyAnalysis.targetEnergy]);
+  const archetypeRecommendation = useMemo(
+    () => determineDefaultArchetype(energyAnalysis.targetEnergy, energyAnalysis.rawTargetEnergy),
+    [energyAnalysis.targetEnergy, energyAnalysis.rawTargetEnergy]
+  );
   const activeArchetypeLevel: CalorieArchetypeLevel = selectedArchetypeOverride || archetypeRecommendation.archetype;
   const activeArchetypePreset = ARCHETYPE_PRESETS[activeArchetypeLevel];
   const targetMacroGrams = useMemo(() => calculateTargetMacroGrams(activeArchetypePreset.targetCalories, macroRatios), [activeArchetypePreset.targetCalories, macroRatios]);
@@ -197,7 +190,7 @@ export const MenuPlannerView: React.FC = () => {
     if (!targetDay) return;
     const targetMacros = generatedPlan.targetDailyMacros || calculateTargetMacroGrams(targetDay.targetCalories, macroRatios);
     const updatedDays = [...generatedPlan.days];
-    updatedDays[dayIndex] = optimizeDayMenuMacros(targetDay, targetMacros, recipes, generatedPlan.client, 12);
+    updatedDays[dayIndex] = optimizeDayMenuMacros(targetDay, targetMacros, generatedPlan.client, 12);
     setGeneratedPlan({ ...generatedPlan, days: updatedDays, updatedAt: new Date().toISOString() });
     setOptimizationNotice(`✓ ${targetDay.day} menüsü başarıyla optimize edildi.`);
     setTimeout(() => setOptimizationNotice(null), 3500);
@@ -208,7 +201,7 @@ export const MenuPlannerView: React.FC = () => {
     const targetMacros = generatedPlan.targetDailyMacros || calculateTargetMacroGrams(activeArchetypePreset.targetCalories, macroRatios);
     setGeneratedPlan({
       ...generatedPlan,
-      days: generatedPlan.days.map(d => optimizeDayMenuMacros(d, targetMacros, recipes, generatedPlan.client, 12)),
+      days: generatedPlan.days.map(d => optimizeDayMenuMacros(d, targetMacros, generatedPlan.client, 12)),
       updatedAt: new Date().toISOString()
     });
     setOptimizationNotice('✓ Tüm 7 günün menüsü hedeflere göre başarıyla yeniden optimize edildi.');
@@ -226,19 +219,15 @@ export const MenuPlannerView: React.FC = () => {
   const handleMacroSliderChange = (macroKey: 'carb' | 'protein' | 'fat', rawValue: number) => {
     const clamped = Math.max(5, Math.min(85, rawValue));
     setMacroRatios(prev => {
-      if (macroKey === 'carb') {
-        let nextFat = prev.fatPct - (clamped - prev.carbPct), nextProtein = prev.proteinPct;
-        if (nextFat < 10) { nextProtein = Math.max(10, nextProtein - (10 - nextFat)); nextFat = 10; }
-        return { carbPct: clamped, proteinPct: nextProtein, fatPct: nextFat };
-      }
-      if (macroKey === 'protein') {
-        let nextFat = prev.fatPct - (clamped - prev.proteinPct), nextCarb = prev.carbPct;
-        if (nextFat < 10) { nextCarb = Math.max(5, nextCarb - (10 - nextFat)); nextFat = 10; }
-        return { carbPct: nextCarb, proteinPct: clamped, fatPct: nextFat };
-      }
-      let nextCarb = prev.carbPct - (clamped - prev.fatPct), nextProtein = prev.proteinPct;
-      if (nextCarb < 5) { nextProtein = Math.max(10, nextProtein - (5 - nextCarb)); nextCarb = 5; }
-      return { carbPct: nextCarb, proteinPct: nextProtein, fatPct: clamped };
+      const primary = `${macroKey}Pct` as keyof MacroRatioConfig;
+      const secondary: keyof MacroRatioConfig = macroKey === 'fat' ? 'carbPct' : 'fatPct';
+      const tertiary: keyof MacroRatioConfig = macroKey === 'protein' ? 'carbPct' : 'proteinPct';
+      const secMin = secondary === 'carbPct' ? 5 : 10;
+      const terMin = tertiary === 'carbPct' ? 5 : 10;
+      let nextSec = prev[secondary] - (clamped - prev[primary]);
+      let nextTer = prev[tertiary];
+      if (nextSec < secMin) { nextTer = Math.max(terMin, nextTer - (secMin - nextSec)); nextSec = secMin; }
+      return { ...prev, [primary]: clamped, [secondary]: nextSec, [tertiary]: nextTer };
     });
   };
 
@@ -555,7 +544,7 @@ export const MenuPlannerView: React.FC = () => {
                         <label htmlFor={`meal-slot-${slot.name}`} className="flex items-center gap-1.5 cursor-pointer select-none font-bold text-slate-900">
                           <span className="text-sm">{slot.icon}</span><span>{slot.name}</span>
                         </label>
-                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold shrink-0 ${slot.role === 'Ana Öğün' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>{slot.role}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${slot.role === 'Ana Öğün' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>{slot.role}</span>
                       </div>
 
                       {isChecked ? (
@@ -699,7 +688,6 @@ export const MenuPlannerView: React.FC = () => {
 
           <WeeklyMatrixView
             plan={generatedPlan}
-            allRecipes={recipes}
             targetMacroGrams={targetMacroGrams}
             activeArchetypeTargetCalories={activeArchetypePreset.targetCalories}
             onSwapRecipeClick={(dayIdx, mealIdx, meal, dayName) => setSwapModalState({ isOpen: true, dayIndex: dayIdx, mealIndex: mealIdx, meal, dayName })}

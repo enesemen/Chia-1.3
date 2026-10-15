@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, Printer, Layers } from 'lucide-react';
+import { X, Download, Layers } from 'lucide-react';
 import { WeeklyMenuPlan } from '../../types/menuPlanner';
 import { ARCHETYPE_PRESETS } from '../../services/menuPlanningEngine';
+import { printElementStandalone } from '../../services/pdfExportService';
 
 interface MenuPrintModalProps {
   isOpen: boolean; plan: WeeklyMenuPlan | null; onClose: () => void;
@@ -20,8 +21,12 @@ export const MenuPrintModal: React.FC<MenuPrintModalProps> = ({ isOpen, plan, on
             <p className="text-xs text-slate-500 mt-0.5">{plan.client.fullName} · {plan.client.selectedArchetype} ({preset.targetCalories} kcal Hedef)</p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => window.print()} className="flex items-center gap-1.5 px-4 py-2 bg-amber-900 hover:bg-amber-950 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer">
-              <Printer className="w-4 h-4 text-amber-300" /><span>Yazdır / PDF</span>
+            <button
+              type="button"
+              onClick={() => printElementStandalone('printable-weekly-menu', `${plan.client.fullName} - Haftalık Beslenme Programı`)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-amber-900 hover:bg-amber-950 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-amber-300" /><span>PDF İndir</span>
             </button>
             <button type="button" onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"><X className="w-5 h-5" /></button>
           </div>
@@ -72,7 +77,7 @@ export const MenuPrintModal: React.FC<MenuPrintModalProps> = ({ isOpen, plan, on
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-amber-950 min-w-[70px]">{meal.mealName}:</span>
                           <span className="font-semibold text-slate-900">{meal.selectedRecipe?.name || 'Reçete atanmadı'}</span>
-                          {meal.isPortableOnly && <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold">📦 Taşınabilir</span>}
+                          {meal.isPortableOnly && <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold">📦 Taşınabilir</span>}
                         </div>
                         {meal.note && <div className="text-[11px] text-slate-500 italic pl-[78px]">Not: {meal.note}</div>}
                       </div>

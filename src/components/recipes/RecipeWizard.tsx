@@ -31,19 +31,43 @@ const EXCHANGE_FIELDS: { key: keyof RecipeExchanges; label: string }[] = [
 ];
 const UNIT_OPTIONS = ['g', 'ml', 'yemek kaşığı', 'tatlı kaşığı', 'çay kaşığı', 'dilim', 'porsiyon', 'su bardağı', 'adet'];
 
+const createInitialWizardForm = (r?: Recipe | null) => ({
+  name: r?.name || '',
+  family: r?.family ? r.family.replace(/^Aile:\s*/, '') : (r ? 'Genel' : ''),
+  description: r?.description || r?.instructions || '',
+  selectedCategory: r?.category || '',
+  practicality: (r?.practicality || null) as 'Kolay' | 'Orta' | 'Zor' | 'İleri' | null,
+  transportability: (r?.transportability || null) as 'Taşımaya Uygun' | 'Taşınmaz' | null,
+  selectedDietTypes: r?.dietTypes?.length ? r.dietTypes : (r?.dietType ? [r.dietType] : []),
+  selectedMealTypes: (r?.mealTypes?.length ? r.mealTypes : (r?.mealType ? [r.mealType] : [])) as MealType[],
+  imageUrl: r?.imageUrl || '',
+  cookingMethod: r?.cookingMethod || '',
+  servings: r?.servings || 1,
+  portionDescription: r?.portionDescription || '1 Porsiyon',
+  prepTimeMinutes: r?.prepTimeMinutes || 10,
+  cookTimeMinutes: r?.cookTimeMinutes || 20,
+  fridgeStorageDays: r?.fridgeStorageDays || 3,
+  isFreezerSuitable: r?.isFreezerSuitable ?? false,
+  isBatchCookingSuitable: r?.isBatchCookingSuitable ?? false,
+  storageAndServiceAdvice: r?.storageAndServiceAdvice || '',
+  clinicalNote: r?.clinicalNote || '',
+  tagsInput: r?.tags ? r.tags.join(', ') : ''
+});
+
 export const RecipeWizard: React.FC = () => {
   const { isWizardOpen, closeWizard, editingRecipe, saveRecipe, foods, turKompService, calculateIngredientNutrition, calculateRecipeTotals } = useNutrition();
 
   const [wizardTab, setWizardTab] = useState<'identity' | 'steps_nutrition' | 'kitchen'>('identity');
-  const [name, setName] = useState('');
-  const [family, setFamily] = useState('');
-  const [description, setDescription] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [practicality, setPracticality] = useState<'Kolay' | 'Orta' | 'Zor' | 'İleri' | null>(null);
-  const [transportability, setTransportability] = useState<'Taşımaya Uygun' | 'Taşınmaz' | null>(null);
-  const [selectedDietTypes, setSelectedDietTypes] = useState<string[]>([]);
-  const [selectedMealTypes, setSelectedMealTypes] = useState<MealType[]>([]);
-  const [imageUrl, setImageUrl] = useState('');
+  const [form, setForm] = useState(() => createInitialWizardForm(editingRecipe));
+  const patchForm = (patch: Partial<ReturnType<typeof createInitialWizardForm>>) => setForm(prev => ({ ...prev, ...patch }));
+
+  const {
+    name, family, description, selectedCategory, practicality, transportability,
+    selectedDietTypes, selectedMealTypes, imageUrl, cookingMethod, servings,
+    portionDescription, prepTimeMinutes, cookTimeMinutes, fridgeStorageDays,
+    isFreezerSuitable, isBatchCookingSuitable, storageAndServiceAdvice, clinicalNote, tagsInput
+  } = form;
+
   const [exchanges, setExchanges] = useState<RecipeExchanges>({ protein: 0, carb: 0, fat: 0, vegetable: 0, fruit: 0, dairy: 0 });
   const [isManualExchangeModified, setIsManualExchangeModified] = useState(false);
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
@@ -52,56 +76,17 @@ export const RecipeWizard: React.FC = () => {
   const [showManualNutrition, setShowManualNutrition] = useState(false);
   const [manualNut, setManualNut] = useState<{ calories: number | ''; protein: number | ''; carbs: number | ''; fat: number | ''; fiber: number | '' }>({ calories: '', protein: '', carbs: '', fat: '', fiber: '' });
   const [steps, setSteps] = useState<string[]>(['']);
-  const [cookingMethod, setCookingMethod] = useState('');
-  const [servings, setServings] = useState(1);
-  const [portionDescription, setPortionDescription] = useState('1 Porsiyon');
-  const [prepTimeMinutes, setPrepTimeMinutes] = useState(10);
-  const [cookTimeMinutes, setCookTimeMinutes] = useState(20);
-  const [fridgeStorageDays, setFridgeStorageDays] = useState(3);
-  const [isFreezerSuitable, setIsFreezerSuitable] = useState(false);
-  const [isBatchCookingSuitable, setIsBatchCookingSuitable] = useState(false);
-  const [storageAndServiceAdvice, setStorageAndServiceAdvice] = useState('');
-  const [clinicalNote, setClinicalNote] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     setWizardTab('identity');
-    if (editingRecipe) {
-      setName(editingRecipe.name || '');
-      setFamily(editingRecipe.family ? editingRecipe.family.replace(/^Aile:\s*/, '') : 'Genel');
-      setDescription(editingRecipe.description || editingRecipe.instructions || '');
-      setSelectedCategory(editingRecipe.category || '');
-      setPracticality(editingRecipe.practicality || null);
-      setTransportability(editingRecipe.transportability || null);
-      setSelectedDietTypes(editingRecipe.dietTypes?.length ? editingRecipe.dietTypes : (editingRecipe.dietType ? [editingRecipe.dietType] : []));
-      setSelectedMealTypes(editingRecipe.mealTypes?.length ? (editingRecipe.mealTypes as MealType[]) : (editingRecipe.mealType ? [editingRecipe.mealType] : []));
-      setImageUrl(editingRecipe.imageUrl || '');
-      setExchanges(editingRecipe.exchanges || { protein: 0, carb: 0, fat: 0, vegetable: 0, fruit: 0, dairy: 0 });
-      setIngredients(editingRecipe.ingredients || []);
-      setSteps(editingRecipe.steps?.length ? editingRecipe.steps.map(s => s.instruction) : ['']);
-      setCookingMethod(editingRecipe.cookingMethod || '');
-      setServings(editingRecipe.servings || 1);
-      setPortionDescription(editingRecipe.portionDescription || '1 Porsiyon');
-      setPrepTimeMinutes(editingRecipe.prepTimeMinutes || 10);
-      setCookTimeMinutes(editingRecipe.cookTimeMinutes || 20);
-      setFridgeStorageDays(editingRecipe.fridgeStorageDays || 3);
-      setIsFreezerSuitable(editingRecipe.isFreezerSuitable ?? false);
-      setIsBatchCookingSuitable(editingRecipe.isBatchCookingSuitable ?? false);
-      setStorageAndServiceAdvice(editingRecipe.storageAndServiceAdvice || '');
-      setClinicalNote(editingRecipe.clinicalNote || '');
-      setTagsInput(editingRecipe.tags ? editingRecipe.tags.join(', ') : '');
-    } else {
-      setName(''); setFamily(''); setDescription(''); setSelectedCategory('');
-      setPracticality(null); setTransportability(null); setSelectedDietTypes([]); setSelectedMealTypes([]);
-      setImageUrl(''); setExchanges({ protein: 0, carb: 0, fat: 0, vegetable: 0, fruit: 0, dairy: 0 });
-      setIsManualExchangeModified(false); setIngredients([]); setShowManualNutrition(false);
-      setManualNut({ calories: '', protein: '', carbs: '', fat: '', fiber: '' });
-      setSteps(['']); setCookingMethod(''); setServings(1); setPortionDescription('1 Porsiyon');
-      setPrepTimeMinutes(10); setCookTimeMinutes(20); setFridgeStorageDays(3);
-      setIsFreezerSuitable(false); setIsBatchCookingSuitable(false);
-      setStorageAndServiceAdvice(''); setClinicalNote(''); setTagsInput('');
-    }
+    setForm(createInitialWizardForm(editingRecipe));
+    setExchanges(editingRecipe?.exchanges || { protein: 0, carb: 0, fat: 0, vegetable: 0, fruit: 0, dairy: 0 });
+    setIsManualExchangeModified(false);
+    setIngredients(editingRecipe?.ingredients || []);
+    setSteps(editingRecipe?.steps?.length ? editingRecipe.steps.map(s => s.instruction) : ['']);
+    setShowManualNutrition(false);
+    setManualNut({ calories: '', protein: '', carbs: '', fat: '', fiber: '' });
     setValidationError(null);
   }, [editingRecipe, isWizardOpen]);
 
@@ -120,7 +105,7 @@ export const RecipeWizard: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      setImageUrl(await compressImageFile(file, 800, 0.82));
+      patchForm({ imageUrl: await compressImageFile(file, 800, 0.82) });
     } catch { alert('Görsel işlenirken bir hata oluştu.'); }
   };
 
@@ -246,21 +231,21 @@ export const RecipeWizard: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-900 mb-1">Tarif Adı <span className="text-rose-600">*</span></label>
-                  <input type="text" value={name} onChange={e => { setName(e.target.value); if (validationError) setValidationError(null); }} placeholder="Örn: Sarımsaklı Ballı Fırın Somon" className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-800" />
+                  <input type="text" value={name} onChange={e => { patchForm({ name: e.target.value }); if (validationError) setValidationError(null); }} placeholder="Örn: Sarımsaklı Ballı Fırın Somon" className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-800" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-900 mb-1">Tarif Ailesi (Grup Adı)</label>
-                  <input type="text" value={family} onChange={e => setFamily(e.target.value)} placeholder="Genel" className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-800" />
+                  <input type="text" value={family} onChange={e => patchForm({ family: e.target.value })} placeholder="Genel" className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-800" />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-slate-900 mb-1">Açıklama / Kısa Tanım</label>
-                  <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="Örn: Fırında sarımsak, bal ve limon marinasyonlu somon fileto" className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-800" />
+                  <input type="text" value={description} onChange={e => patchForm({ description: e.target.value })} placeholder="Örn: Fırında sarımsak, bal ve limon marinasyonlu somon fileto" className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-800" />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-slate-900 mb-1.5">Kategori</label>
                   <div className="flex flex-wrap gap-1.5">
                     {CATEGORY_OPTIONS.map(cat => (
-                      <button key={cat} type="button" onClick={() => setSelectedCategory(cat)} className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer ${selectedCategory === cat ? 'bg-amber-900 border-amber-900 text-white font-semibold shadow-2xs' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>{cat}</button>
+                      <button key={cat} type="button" onClick={() => patchForm({ selectedCategory: cat })} className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer ${selectedCategory === cat ? 'bg-amber-900 border-amber-900 text-white font-semibold shadow-2xs' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>{cat}</button>
                     ))}
                   </div>
                 </div>
@@ -270,7 +255,7 @@ export const RecipeWizard: React.FC = () => {
                     {DIET_TYPES.map(dt => {
                       const isSelected = selectedDietTypes.includes(dt.id);
                       return (
-                        <button key={dt.id} type="button" onClick={() => setSelectedDietTypes(prev => isSelected ? prev.filter(i => i !== dt.id) : [...prev, dt.id])} className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${isSelected ? 'bg-emerald-800 border-emerald-800 text-white shadow-2xs' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+                        <button key={dt.id} type="button" onClick={() => patchForm({ selectedDietTypes: isSelected ? selectedDietTypes.filter(i => i !== dt.id) : [...selectedDietTypes, dt.id] })} className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${isSelected ? 'bg-emerald-800 border-emerald-800 text-white shadow-2xs' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
                           {isSelected && <Check className="w-3 h-3" />}<span>{dt.label}</span>
                         </button>
                       );
@@ -283,7 +268,7 @@ export const RecipeWizard: React.FC = () => {
                     {MEAL_TYPES.map(meal => {
                       const isSelected = selectedMealTypes.includes(meal);
                       return (
-                        <button key={meal} type="button" onClick={() => setSelectedMealTypes(prev => prev.includes(meal) ? (prev.length === 1 ? prev : prev.filter(m => m !== meal)) : [...prev, meal])} className={`py-1.5 px-2.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer flex items-center justify-between ${isSelected ? 'bg-amber-900 border-amber-900 text-white shadow-2xs' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+                        <button key={meal} type="button" onClick={() => patchForm({ selectedMealTypes: selectedMealTypes.includes(meal) ? (selectedMealTypes.length === 1 ? selectedMealTypes : selectedMealTypes.filter(m => m !== meal)) : [...selectedMealTypes, meal] })} className={`py-1.5 px-2.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer flex items-center justify-between ${isSelected ? 'bg-amber-900 border-amber-900 text-white shadow-2xs' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
                           <span>{meal}</span>{isSelected && <Check className="w-3 h-3" />}
                         </button>
                       );
@@ -429,7 +414,7 @@ export const RecipeWizard: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-900 mb-1.5">Pratiklik</label>
                   <div className="grid grid-cols-3 gap-1.5">
                     {(['Kolay', 'Orta', 'Zor'] as const).map(p => (
-                      <button key={p} type="button" onClick={() => setPracticality(p)} className={`py-1.5 px-2 rounded-lg border text-xs font-semibold cursor-pointer ${practicality === p ? 'bg-amber-900 border-amber-900 text-white' : 'bg-white border-slate-200 text-slate-700'}`}>{p}</button>
+                      <button key={p} type="button" onClick={() => patchForm({ practicality: p })} className={`py-1.5 px-2 rounded-lg border text-xs font-semibold cursor-pointer ${practicality === p ? 'bg-amber-900 border-amber-900 text-white' : 'bg-white border-slate-200 text-slate-700'}`}>{p}</button>
                     ))}
                   </div>
                 </div>
@@ -437,13 +422,13 @@ export const RecipeWizard: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-900 mb-1.5">Taşıma</label>
                   <div className="grid grid-cols-2 gap-1.5">
                     {(['Taşımaya Uygun', 'Taşınmaz'] as const).map(t => (
-                      <button key={t} type="button" onClick={() => setTransportability(t)} className={`py-1.5 px-2 rounded-lg border text-xs font-semibold cursor-pointer ${transportability === t ? 'bg-amber-900 border-amber-900 text-white' : 'bg-white border-slate-200 text-slate-700'}`}>{t}</button>
+                      <button key={t} type="button" onClick={() => patchForm({ transportability: t })} className={`py-1.5 px-2 rounded-lg border text-xs font-semibold cursor-pointer ${transportability === t ? 'bg-amber-900 border-amber-900 text-white' : 'bg-white border-slate-200 text-slate-700'}`}>{t}</button>
                     ))}
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-900 mb-1.5">Pişirme Yöntemi</label>
-                  <select value={cookingMethod} onChange={e => setCookingMethod(e.target.value)} className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 cursor-pointer">
+                  <select value={cookingMethod} onChange={e => patchForm({ cookingMethod: e.target.value })} className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 cursor-pointer">
                     <option value="">Seçiniz...</option>
                     {COOKING_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
@@ -453,31 +438,31 @@ export const RecipeWizard: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-900 mb-1">Porsiyon Sayısı</label>
-                  <input type="number" min="1" value={servings} onChange={e => setServings(parseInt(e.target.value) || 1)} className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-center font-mono" />
+                  <input type="number" min="1" value={servings} onChange={e => patchForm({ servings: parseInt(e.target.value) || 1 })} className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-center font-mono" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-900 mb-1">Porsiyon Tanımı</label>
-                  <input type="text" value={portionDescription} onChange={e => setPortionDescription(e.target.value)} className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                  <input type="text" value={portionDescription} onChange={e => patchForm({ portionDescription: e.target.value })} className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs" />
                 </div>
                 {[
-                  { label: 'Hazırlık (dk)', val: prepTimeMinutes, set: setPrepTimeMinutes },
-                  { label: 'Pişirme (dk)', val: cookTimeMinutes, set: setCookTimeMinutes },
-                  { label: 'Dolap Ömrü (Gün)', val: fridgeStorageDays, set: setFridgeStorageDays }
+                  { label: 'Hazırlık (dk)', val: prepTimeMinutes, key: 'prepTimeMinutes' as const },
+                  { label: 'Pişirme (dk)', val: cookTimeMinutes, key: 'cookTimeMinutes' as const },
+                  { label: 'Dolap Ömrü (Gün)', val: fridgeStorageDays, key: 'fridgeStorageDays' as const }
                 ].map(num => (
                   <div key={num.label}>
                     <label className="block text-xs font-semibold text-slate-900 mb-1">{num.label}</label>
-                    <input type="number" min="0" value={num.val} onChange={e => num.set(parseInt(e.target.value) || 0)} className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-center font-mono" />
+                    <input type="number" min="0" value={num.val} onChange={e => patchForm({ [num.key]: parseInt(e.target.value) || 0 })} className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-center font-mono" />
                   </div>
                 ))}
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
                 <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800">
-                  <input type="checkbox" checked={isFreezerSuitable} onChange={e => setIsFreezerSuitable(e.target.checked)} className="rounded border-slate-300 text-amber-900 w-4 h-4 cursor-pointer" />
+                  <input type="checkbox" checked={isFreezerSuitable} onChange={e => patchForm({ isFreezerSuitable: e.target.checked })} className="rounded border-slate-300 text-amber-900 w-4 h-4 cursor-pointer" />
                   <span>Dondurucuda Saklamaya Uygun</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800">
-                  <input type="checkbox" checked={isBatchCookingSuitable} onChange={e => setIsBatchCookingSuitable(e.target.checked)} className="rounded border-slate-300 text-amber-900 w-4 h-4 cursor-pointer" />
+                  <input type="checkbox" checked={isBatchCookingSuitable} onChange={e => patchForm({ isBatchCookingSuitable: e.target.checked })} className="rounded border-slate-300 text-amber-900 w-4 h-4 cursor-pointer" />
                   <span>Toplu Hazırlığa (Batch Cooking) Uygun</span>
                 </label>
               </div>
@@ -490,7 +475,7 @@ export const RecipeWizard: React.FC = () => {
                     <input type="file" accept="image/*" onChange={handleImageFileUpload} className="hidden" />
                   </label>
                   {PRESET_IMAGE_CATEGORIES.map(preset => (
-                    <button key={preset.name} type="button" onClick={() => setImageUrl(preset.url)} className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium cursor-pointer ${imageUrl === preset.url ? 'bg-amber-900 border-amber-900 text-white font-semibold' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{preset.name}</button>
+                    <button key={preset.name} type="button" onClick={() => patchForm({ imageUrl: preset.url })} className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium cursor-pointer ${imageUrl === preset.url ? 'bg-amber-900 border-amber-900 text-white font-semibold' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{preset.name}</button>
                   ))}
                   <div className="w-10 h-10 rounded-lg border border-slate-300 overflow-hidden bg-slate-100 ml-auto flex items-center justify-center shrink-0">
                     {imageUrl ? <img src={imageUrl} alt="Önizleme" className="w-full h-full object-cover" /> : <ImageIcon className="w-4 h-4 text-slate-400" />}
@@ -501,16 +486,16 @@ export const RecipeWizard: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-200">
                 <div>
                   <label className="block text-xs font-semibold text-slate-900 mb-1">Diyetisyen Zeynep Hale Klinik Notu</label>
-                  <textarea rows={2} value={clinicalNote} onChange={e => setClinicalNote(e.target.value)} placeholder="Danışanlara aktarılacak klinik öneri..." className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900" />
+                  <textarea rows={2} value={clinicalNote} onChange={e => patchForm({ clinicalNote: e.target.value })} placeholder="Danışanlara aktarılacak klinik öneri..." className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900" />
                 </div>
                 <div className="space-y-2">
                   <div>
                     <label className="block text-xs font-semibold text-slate-900 mb-1">Saklama & Servis Tavsiyesi</label>
-                    <input type="text" value={storageAndServiceAdvice} onChange={e => setStorageAndServiceAdvice(e.target.value)} placeholder="Örn: Cam kapta 2 gün muhafaza edin." className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900" />
+                    <input type="text" value={storageAndServiceAdvice} onChange={e => patchForm({ storageAndServiceAdvice: e.target.value })} placeholder="Örn: Cam kapta 2 gün muhafaza edin." className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-900 mb-1">Etiketler (Virgül ile ayırın)</label>
-                    <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)} placeholder="Örn: omega3, pratik, ofis" className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900" />
+                    <input type="text" value={tagsInput} onChange={e => patchForm({ tagsInput: e.target.value })} placeholder="Örn: omega3, pratik, ofis" className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900" />
                   </div>
                 </div>
               </div>

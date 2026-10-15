@@ -3,11 +3,11 @@ import { computeRecipeDietaryFlags, getUnifiedRecipeIngredients } from '../data/
 import {
   BMRFormula, CalorieArchetypeLevel, ArchetypePreset, PlannerClientData, MealPoolOption,
   MealRole, SelectedMealConfig, DayOfWeek, DayScheduleConfig, WeeklyMenuPlan,
-  PlannedDayMenu, PlannedMealItem, RecipeVarietyStrategy, MealAlternativeOption,
+  PlannedDayMenu, PlannedMealItem, RecipeVarietyStrategy,
   DailyMacroTargetGrams, MacroRatioConfig
 } from '../types/menuPlanner';
 import { personalizeRecipeForMeal, detectIngredientCategory } from './recipePersonalizationEngine';
-import { calculateTargetMacroGrams, DEFAULT_MACRO_RATIOS, validateRecipeIntegrity, evaluateAlternativeCategory, checkMacroCompliance } from '../utils/nutritionCalculator';
+import { calculateTargetMacroGrams, DEFAULT_MACRO_RATIOS, validateRecipeIntegrity, checkMacroCompliance } from '../utils/nutritionCalculator';
 
 export const DAYS_OF_WEEK: DayOfWeek[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 export const CANONICAL_MEAL_ORDER: MealPoolOption[] = ['Sabah', 'Kahvaltı', 'Kuşluk', 'Öğle', 'İkindi', 'Akşam', 'Gece'];
@@ -20,6 +20,15 @@ export function sortMealsByCanonicalOrder<T extends { name?: MealPoolOption; mea
   });
 }
 
+const MEAL_SPLIT_RULES: Record<string, (m: SelectedMealConfig) => number> = {
+  '3_2': m => (m.name === 'Öğle' ? 30 : m.role === 'Ana Öğün' ? 25 : 10),
+  '3_1': m => (m.name === 'Kahvaltı' ? 30 : m.name === 'Öğle' ? 35 : m.name === 'Akşam' ? 25 : m.role === 'Ana Öğün' ? 25 : 10),
+  '3_0': m => (m.name === 'Kahvaltı' || m.name === 'Öğle' ? 35 : m.name === 'Akşam' ? 30 : 33),
+  '2_1': m => (m.role === 'Ana Öğün' ? 40 : 20),
+  '2_0': () => 50,
+  '2_2': m => (m.role === 'Ana Öğün' ? 35 : 15)
+};
+
 export function autoDistributeMealPercentages(meals: SelectedMealConfig[]): SelectedMealConfig[] {
   if (meals.length === 0) return [];
   if (meals.length === 1) return [{ ...meals[0], percentage: 100 }];
@@ -27,23 +36,10 @@ export function autoDistributeMealPercentages(meals: SelectedMealConfig[]): Sele
   const mainCount = meals.filter(m => m.role === 'Ana Öğün').length;
   const snackCount = meals.filter(m => m.role === 'Ara Öğün').length;
   const allocated: Record<string, number> = {};
+  const rule = MEAL_SPLIT_RULES[`${mainCount}_${snackCount}`];
 
-  if (mainCount === 3 && snackCount === 2) {
-    meals.forEach(m => {
-      allocated[m.name] = m.name === 'Öğle' ? 30 : m.name === 'Kahvaltı' || m.name === 'Akşam' ? 25 : m.role === 'Ana Öğün' ? 25 : 10;
-    });
-  } else if (mainCount === 3 && snackCount === 1) {
-    meals.forEach(m => {
-      allocated[m.name] = m.name === 'Kahvaltı' ? 30 : m.name === 'Öğle' ? 35 : m.name === 'Akşam' ? 25 : m.role === 'Ara Öğün' ? 10 : 25;
-    });
-  } else if (mainCount === 3 && snackCount === 0) {
-    meals.forEach(m => { allocated[m.name] = m.name === 'Kahvaltı' || m.name === 'Öğle' ? 35 : m.name === 'Akşam' ? 30 : 33; });
-  } else if (mainCount === 2 && snackCount === 1) {
-    meals.forEach(m => { allocated[m.name] = m.role === 'Ana Öğün' ? 40 : 20; });
-  } else if (mainCount === 2 && snackCount === 0) {
-    meals.forEach(m => { allocated[m.name] = 50; });
-  } else if (mainCount === 2 && snackCount === 2) {
-    meals.forEach(m => { allocated[m.name] = m.role === 'Ana Öğün' ? 35 : 15; });
+  if (rule) {
+    meals.forEach(m => { allocated[m.name] = rule(m); });
   } else {
     const weights = meals.map(m => (m.role === 'Ana Öğün' ? 3.0 : 1.0));
     const totalW = weights.reduce((a, b) => a + b, 0);
@@ -151,8 +147,9 @@ export function calculateTargetEnergyFromPAL(bmr: number, activityLevel: string,
     const diff = targetWeightKg - weightKg;
     deficitOrSurplus = diff < -5 ? -500 : diff < -0.5 ? -350 : diff > 5 ? 500 : diff > 0.5 ? 350 : 0;
   }
-  const minSafetyFloor = Math.max(1000, Math.min(bmr, 1200));
-  return { tdee, pal, targetEnergy: Math.round(Math.max(minSafetyFloor, tdee + deficitOrSurplus)), deficitOrSurplus };
+  const rawTargetEnergy = Math.round(tdee + deficitOrSurplus);
+  const minSafetyFloor = Math.max(1000, Math.round(bmr * 0.85));
+  return { tdee, pal, rawTargetEnergy, targetEnergy: Math.max(minSafetyFloor, rawTargetEnergy), deficitOrSurplus };
 }
 
 export interface BMIAnalysis {
@@ -185,14 +182,24 @@ export function calculateBMI(weightKg: number, heightCm: number, targetWeightKg?
   return { bmi, category, categoryColor, badgeBg, idealWeightMin, idealWeightMax, targetBmi, targetBmiCategory, weightDifference };
 }
 
-export function determineDefaultArchetype(targetEnergy: number): { archetype: CalorieArchetypeLevel; isBelowMinimumSafety: boolean } {
+export function determineDefaultArchetype(targetEnergy: number, rawTargetEnergy?: number): { archetype: CalorieArchetypeLevel; isBelowMinimumSafety: boolean } {
   const levels: CalorieArchetypeLevel[] = ['XS1000', 'S1200', 'M1400', 'L1600', 'XL1800'];
   let closest = levels[0], minDiff = Infinity;
   for (const lvl of levels) {
     const diff = Math.abs(targetEnergy - ARCHETYPE_PRESETS[lvl].targetCalories);
     if (diff < minDiff) { minDiff = diff; closest = lvl; }
   }
-  return { archetype: closest, isBelowMinimumSafety: targetEnergy < 1000 };
+  return { archetype: closest, isBelowMinimumSafety: (rawTargetEnergy ?? targetEnergy) < 1000 };
+}
+
+export function normalizeDietCriterion(pref?: DietType): DietType[] {
+  if (!pref || pref === 'STD' || pref === 'Standart (STD)') return ['Standart (STD)'];
+  if (pref === 'GF' || pref === 'Glutensiz (GF)') return ['Glutensiz (GF)'];
+  if (pref === 'LF' || pref === 'Laktozsuz (LF)') return ['Laktozsuz (LF)'];
+  if (pref === 'GF + LF' || pref === 'GF+LF') return ['Glutensiz (GF)', 'Laktozsuz (LF)'];
+  if (pref === 'Eliminasyon') return ['Eliminasyon (4\'lü)'];
+  if (pref === 'FODMAP') return ['Düşük FODMAP'];
+  return [pref];
 }
 
 export function isRecipeCompatibleWithDiet(recipe: Recipe, dietCriteria: DietType | DietType[], excludedAllergies: string[] = []): boolean {
@@ -260,7 +267,6 @@ export function adaptRecipeToArchetypeAndMeal(
   recipe: Recipe | null,
   archetypeLevel: CalorieArchetypeLevel,
   mealTargetCalories: number,
-  _mealTargetExchanges?: { protein: number; carb: number; fat: number; vegetable?: number; fruit?: number; dairy?: number },
   mealTargetMacros?: { calories: number; proteinG: number; carbG: number; fatG: number }
 ): AdaptedRecipeResult {
   if (!recipe) {
@@ -341,57 +347,6 @@ export function adaptRecipeToArchetypeAndMeal(
   };
 }
 
-export function generateMealAlternatives(
-  primaryRecipe: Recipe | null,
-  mealName: MealPoolOption,
-  mealTargetCalories: number,
-  mealTargetMacros: { calories: number; proteinG: number; carbG: number; fatG: number }
-): MealAlternativeOption[] {
-  const primaryName = primaryRecipe?.name || 'Ana Menü';
-  const primaryCal = primaryRecipe?.totalNutrition?.calories || mealTargetCalories;
-  const primaryP = primaryRecipe?.totalNutrition?.protein || mealTargetMacros.proteinG;
-  const primaryC = primaryRecipe?.totalNutrition?.carbs || mealTargetMacros.carbG;
-  const primaryF = primaryRecipe?.totalNutrition?.fat || mealTargetMacros.fatG;
-  const baseItem = { name: primaryName, calories: primaryCal, protein: primaryP, carbs: primaryC, fat: primaryF };
-
-  const results: MealAlternativeOption[] = [{
-    id: `alt_primary_${primaryRecipe?.id || 'main'}`, name: primaryName, type: 'equivalent',
-    calories: Math.round(primaryCal), protein: Number(primaryP.toFixed(1)), carbs: Number(primaryC.toFixed(1)),
-    fat: Number(primaryF.toFixed(1)), fiber: Number((primaryRecipe?.totalNutrition?.fiber || 3).toFixed(1)), grams: 200, isSelected: true
-  }];
-
-  if (mealName === 'Kahvaltı' || mealName === 'Sabah') {
-    const eggCount = Math.max(1, Math.round(mealTargetMacros.proteinG * 0.05));
-    const breadSlices = Math.max(1, Math.round(mealTargetMacros.carbG / 20));
-    const cheeseAlt = {
-      name: `${eggCount} Haşlanmış Yumurta + 60g Beyaz Peynir + ${breadSlices} Dilim Ekmek`,
-      calories: Math.round(mealTargetCalories * 0.98), protein: Number((mealTargetMacros.proteinG * 1.05).toFixed(1)),
-      carbs: Number((mealTargetMacros.carbG * 0.95).toFixed(1)), fat: Number((mealTargetMacros.fatG * 0.92).toFixed(1))
-    };
-    const cat1 = evaluateAlternativeCategory(baseItem, cheeseAlt);
-    results.push({ id: 'alt_bf_cheese', ...cheeseAlt, type: cat1.type, warning: cat1.warning, fiber: 4, grams: 220, isSelected: false });
-  } else if (mealName === 'Öğle' || mealName === 'Akşam') {
-    const meatGrams = Math.round(mealTargetMacros.proteinG * 4.2);
-    const grainSpoons = Math.max(3, Math.round(mealTargetMacros.carbG / 6));
-    const turkeyAlt = {
-      name: `${meatGrams}g Izgara Hindi Göğsü + ${grainSpoons} yk Bulgur Pilavı + Salata`,
-      calories: Math.round(mealTargetCalories * 0.99), protein: Number((mealTargetMacros.proteinG * 1.02).toFixed(1)),
-      carbs: Number((mealTargetMacros.carbG * 0.98).toFixed(1)), fat: Number((mealTargetMacros.fatG * 0.9).toFixed(1))
-    };
-    const cat1 = evaluateAlternativeCategory(baseItem, turkeyAlt);
-    results.push({ id: 'alt_main_turkey', ...turkeyAlt, type: cat1.type, warning: cat1.warning, fiber: 5, grams: 300, isSelected: false });
-  } else {
-    const nutAlt = {
-      name: '15 Adet Çiğ Badem + 1 Porsiyon Yeşil Elma',
-      calories: Math.round(mealTargetCalories), protein: Number((mealTargetMacros.proteinG * 0.9).toFixed(1)),
-      carbs: Number((mealTargetMacros.carbG * 1.05).toFixed(1)), fat: Number((mealTargetMacros.fatG * 1.02).toFixed(1))
-    };
-    const cat1 = evaluateAlternativeCategory(baseItem, nutAlt);
-    results.push({ id: 'alt_snack_nuts', ...nutAlt, type: cat1.type, warning: cat1.warning, fiber: 4, grams: 140, isSelected: false });
-  }
-  return results;
-}
-
 function recalculateDayTotals(dayMenu: PlannedDayMenu, targetDailyMacros: DailyMacroTargetGrams, calorieTolerancePercent = 3): PlannedDayMenu {
   let sumCal = 0, sumProt = 0, sumCarb = 0, sumFat = 0, sumFib = 0;
   let exP = 0, exC = 0, exF = 0, exV = 0, exFr = 0, exD = 0;
@@ -430,7 +385,6 @@ function recalculateDayTotals(dayMenu: PlannedDayMenu, targetDailyMacros: DailyM
 export function optimizeDayMenuMacros(
   dayMenu: PlannedDayMenu,
   targetDailyMacros: DailyMacroTargetGrams,
-  _allRecipes: Recipe[],
   client: PlannerClientData,
   maxPasses = 8
 ): PlannedDayMenu {
@@ -453,7 +407,7 @@ export function optimizeDayMenuMacros(
         carbG: Number((targetDailyMacros.carbG * (mealNormPct / 100)).toFixed(1)),
         fatG: Number((targetDailyMacros.fatG * (mealNormPct / 100)).toFixed(1))
       };
-      const adapted = adaptRecipeToArchetypeAndMeal(targetMeal.selectedRecipe, client.selectedArchetype, mealTargetCal, undefined, mealTargetM);
+      const adapted = adaptRecipeToArchetypeAndMeal(targetMeal.selectedRecipe, client.selectedArchetype, mealTargetCal, mealTargetM);
       const syncedPersonalizedCopy = personalizeRecipeForMeal(
         targetMeal.selectedRecipe, adapted.calculatedExchanges, { fullName: client.fullName },
         `plan_${client.fullName}_${currentDay.day}`, targetMeal.mealName, adapted.calculatedNutrition, adapted.portionMultiplier
@@ -591,7 +545,7 @@ export function generateWeeklyMenuPlan(
       if (selectedRecipe) usageCounts[selectedRecipe.id] = (usageCounts[selectedRecipe.id] || 0) + 1;
 
       const { adaptedRecipe, calculatedNutrition, calculatedExchanges, portionMultiplier } = adaptRecipeToArchetypeAndMeal(
-        selectedRecipe, client.selectedArchetype, mealTargetCalories, defaultDist.exchanges, mealTargetMacros
+        selectedRecipe, client.selectedArchetype, mealTargetCalories, mealTargetMacros
       );
 
       const personalizedCopy = selectedRecipe
@@ -618,7 +572,6 @@ export function generateWeeklyMenuPlan(
         mealName: mealConfig.name, mealRole: mealConfig.role, targetCalories: mealTargetCalories, targetPercentage: normalizedPercentage,
         targetMacros: mealTargetMacros,
         macroCompliance: { isCompliant: mealEnergyOk && mealPOk && mealCOk && mealFOk, energyOk: mealEnergyOk, proteinOk: mealPOk, carbOk: mealCOk, fatOk: mealFOk, messages: mealComplianceMessages },
-        alternatives: generateMealAlternatives(selectedRecipe, mealConfig.name, mealTargetCalories, mealTargetMacros),
         note: mealConfig.note || (isPortableOnly ? 'Taşınabilir kapta hazırlanacak' : undefined),
         isPortableOnly, selectedRecipe: adaptedRecipe, adaptedRecipe: personalizedCopy, fallbackReason,
         calculatedNutrition, calculatedExchanges, isManuallySwapped: false
@@ -645,7 +598,7 @@ export function generateWeeklyMenuPlan(
       calorieTolerancePercent
     );
 
-    days.push(initialDay.macroCompliance?.isAllCompliant ? initialDay : optimizeDayMenuMacros(initialDay, fixedDailyTargetMacros, validRecipesPool, client));
+    days.push(initialDay.macroCompliance?.isAllCompliant ? initialDay : optimizeDayMenuMacros(initialDay, fixedDailyTargetMacros, client));
   }
 
   const totalWeeklyCal = days.reduce((acc, d) => acc + d.totalCalories, 0);
@@ -663,27 +616,10 @@ export function generateWeeklyMenuPlan(
     }
   }
 
-  const allDaysEnergyOk = days.every(d => d.macroCompliance?.isEnergyCompliant ?? true);
-  const allDaysProtOk = days.every(d => d.macroCompliance?.isProteinCompliant ?? true);
-  const allDaysCarbOk = days.every(d => d.macroCompliance?.isCarbCompliant ?? true);
-  const allDaysFatOk = days.every(d => d.macroCompliance?.isFatCompliant ?? true);
-  const allMealsOk = days.every(d => d.meals.every(m => m.macroCompliance?.isCompliant ?? true));
-
-  const criticalBlockers: string[] = [];
-  if (!allDaysEnergyOk) criticalBlockers.push('Bazı günlerin toplam enerjisi ±%5 sınırının dışındadır.');
-  if (!allDaysProtOk) criticalBlockers.push('Bazı günlerin protein değeri ±%10 hedef sınırının dışındadır.');
-  if (!allDaysCarbOk) criticalBlockers.push('Bazı günlerin karbonhidrat değeri ±%10 hedef sınırının dışındadır.');
-  if (!allDaysFatOk) criticalBlockers.push('Bazı günlerin yağ değeri ±%10 hedef sınırının dışındadır.');
-
   return {
     id: `plan-${Date.now()}`,
     client: { ...client, targetMacroRatios, varietyStrategy, varietyScore, maxRecipeRepeatPerWeek },
     selectedMeals: sortedSelectedMeals, daySchedules, days, targetMacroRatios, targetDailyMacros: fixedDailyTargetMacros,
-    overallMacroCompliance: {
-      isFullyCompliant: criticalBlockers.length === 0,
-      clinicalChecklist: { energyOk: allDaysEnergyOk, proteinOk: allDaysProtOk, carbOk: allDaysCarbOk, fatOk: allDaysFatOk, mealsOk: allMealsOk, exchangesOk: true, databaseOk: true, recipesOk: true, alternativesOk: true, realValuesOk: true },
-      criticalBlockers
-    },
     weeklyStats: {
       averageDailyCalories: avgDailyCal, repeatCountByRecipe: usageCounts, uniqueRecipeCount: uniqueRecipesCount,
       estimatedCookCount: uniqueRecipesCount, prepTimeSavingsPercent, portableMealCount: totalPortableMeals, warnings: weeklyWarnings
@@ -707,7 +643,7 @@ export function swapRecipeInDayMenu(
   if (!currentMeal) return currentDay;
 
   const { adaptedRecipe, calculatedNutrition, calculatedExchanges, portionMultiplier } = adaptRecipeToArchetypeAndMeal(
-    newRecipe, archetypeLevel, currentMeal.targetCalories, undefined, currentMeal.targetMacros
+    newRecipe, archetypeLevel, currentMeal.targetCalories, currentMeal.targetMacros
   );
 
   const effectivePersonalizedCopy = personalizedCopy || (clientFullName

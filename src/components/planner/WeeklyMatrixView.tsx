@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Utensils, Clock, Sparkles, Shuffle, ShoppingBag, Printer, Download,
-  Check, CheckCircle2, X, ChevronRight, Info, Flame, Edit3, Copy,
+  Utensils, Clock, Sparkles, Shuffle, ShoppingBag, Printer,
+  Check, CheckCircle2, X, Info, Flame, Edit3, Copy,
   ExternalLink, Layers, ChefHat, BookOpen
 } from 'lucide-react';
 import { useNutrition } from '../../context/NutritionContext';
@@ -9,11 +9,9 @@ import { WeeklyMenuPlan, PlannedMealItem, DailyMacroTargetGrams } from '../../ty
 import { Recipe } from '../../types/nutrition';
 import { getUnifiedRecipeIngredients } from '../../data/turkishRecipes';
 import { sortMealsByCanonicalOrder } from '../../services/menuPlanningEngine';
-import { exportElementToPDF } from '../../services/pdfExportService';
 
 interface WeeklyMatrixViewProps {
   plan: WeeklyMenuPlan;
-  allRecipes: Recipe[];
   targetMacroGrams: DailyMacroTargetGrams;
   activeArchetypeTargetCalories: number;
   onSwapRecipeClick: (dayIndex: number, mealIndex: number, meal: PlannedMealItem, dayName: string) => void;
@@ -51,7 +49,7 @@ const DAY_LABELS_MAP: Record<string, { tr: string; en: string }> = {
 };
 
 export const WeeklyMatrixView: React.FC<WeeklyMatrixViewProps> = ({
-  plan, allRecipes, targetMacroGrams, activeArchetypeTargetCalories,
+  plan, targetMacroGrams, activeArchetypeTargetCalories,
   onSwapRecipeClick, onReOptimizeDay, onReOptimizeAllDays, onUpdatePlanTitle
 }) => {
   const [planTitle, setPlanTitle] = useState(plan.planTitle || `${plan.client?.fullName || 'Danışan'}'in Haftalık Planı`);
@@ -59,7 +57,6 @@ export const WeeklyMatrixView: React.FC<WeeklyMatrixViewProps> = ({
   const { openDetail, recipeMap } = useNutrition();
 
   const [isGroceryModalOpen, setIsGroceryModalOpen] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedRecipeDetail, setSelectedRecipeDetail] = useState<{
     recipe: Recipe | null; meal: PlannedMealItem; dayName: string; dayIndex: number; mealIndex: number;
   } | null>(null);
@@ -159,16 +156,6 @@ export const WeeklyMatrixView: React.FC<WeeklyMatrixViewProps> = ({
     showToast('Alışveriş listesi panoya kopyalandı!');
   };
 
-  const handleDownloadPDF = async () => {
-    const el = document.getElementById('weekly-matrix-export-container');
-    if (!el) return;
-    try {
-      showToast('Haftalık matris PDF hazırlanıyor...');
-      await exportElementToPDF(el, `${plan.client?.fullName || 'Haftalik_Plan'}_Matris.pdf`, { orientation: 'landscape' });
-      showToast('PDF başarıyla indirildi!');
-    } catch { window.print(); }
-  };
-
   const handleOpenRecipeModal = (dayPlan: WeeklyMenuPlan['days'][0], dayIdx: number, mealRowName: string, mealItem: PlannedMealItem) => {
     setSelectedRecipeDetail({
       recipe: mealItem.selectedRecipe || null, meal: mealItem, dayName: dayPlan.day,
@@ -215,9 +202,6 @@ export const WeeklyMatrixView: React.FC<WeeklyMatrixViewProps> = ({
         <div className="flex items-center gap-2.5 flex-wrap justify-end">
           <button type="button" onClick={() => setIsGroceryModalOpen(true)} className="flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer">
             <ShoppingBag className="w-4 h-4 text-slate-600" /><span>Alışveriş Listesi</span>
-          </button>
-          <button type="button" onClick={() => setIsShareModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer">
-            <Printer className="w-4 h-4 text-amber-400" /><span>Yazdır / PDF</span>
           </button>
         </div>
       </div>
@@ -290,8 +274,8 @@ export const WeeklyMatrixView: React.FC<WeeklyMatrixViewProps> = ({
                           <div className="group relative bg-white hover:bg-stone-50/90 border border-slate-200/90 hover:border-amber-700/60 rounded-xl p-1.5 transition-all shadow-2xs flex flex-col justify-between gap-1 min-h-[92px]">
                             <div onClick={() => handleOpenRecipeModal(dayPlan, dayIdx, mealRowName, mealItem)} className="cursor-pointer space-y-1 w-full">
                               <div className="flex items-center gap-1.5">
-                                <img src={imgUrl} alt={recipeTitle} className="w-7 h-7 rounded-lg object-cover shrink-0 border border-slate-150" loading="lazy" onError={e => { (e.target as HTMLImageElement).src = getMealFallbackImage(mealRowName); }} />
-                                <span className="font-mono font-bold text-[10px] text-purple-700 bg-purple-50 px-1 py-0.2 rounded border border-purple-100 truncate">{calories} kcal</span>
+                                <img src={imgUrl} alt={recipeTitle} className="w-7 h-7 rounded-lg object-cover shrink-0 border border-slate-200/80" loading="lazy" onError={e => { (e.target as HTMLImageElement).src = getMealFallbackImage(mealRowName); }} />
+                                <span className="font-mono font-bold text-[10px] text-purple-700 bg-purple-50 px-1 py-0.5 rounded border border-purple-100 truncate">{calories} kcal</span>
                               </div>
                               <h4 title="Tarif içeriğini ve yapılışını görüntülemek için tıklayın" className="text-[11px] font-bold text-slate-900 line-clamp-2 leading-tight group-hover:text-amber-900 group-hover:underline transition-colors">{recipeTitle}</h4>
                             </div>
@@ -381,7 +365,7 @@ export const WeeklyMatrixView: React.FC<WeeklyMatrixViewProps> = ({
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {cat.items.map((it, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-stone-50 border border-slate-150">
+                      <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-stone-50 border border-slate-200/80">
                         <span className="font-medium text-slate-800">{it.name}</span>
                         <span className="font-mono text-slate-500 font-semibold bg-white px-2 py-0.5 rounded border border-slate-200">{it.amount} {it.unit}</span>
                       </div>
@@ -401,37 +385,6 @@ export const WeeklyMatrixView: React.FC<WeeklyMatrixViewProps> = ({
                 </button>
                 <button type="button" onClick={() => setIsGroceryModalOpen(false)} className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl font-bold cursor-pointer transition-all shadow-2xs">Tamam</button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isShareModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-stone-50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center"><Printer className="w-5 h-5" /></div>
-                <div><h3 className="font-bold text-slate-900 text-base">Haftalık Menüyü Dışa Aktar</h3><p className="text-xs text-slate-500">{plan.client?.fullName}</p></div>
-              </div>
-              <button type="button" onClick={() => setIsShareModalOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-white cursor-pointer"><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="p-5 space-y-3 text-xs">
-              <button type="button" onClick={() => { setIsShareModalOpen(false); handleDownloadPDF(); }} className="w-full p-3.5 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-900 font-semibold flex items-center justify-between transition-all cursor-pointer">
-                <div className="flex items-center gap-2.5 text-left">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center"><Download className="w-4 h-4" /></div>
-                  <div><div className="text-sm font-bold">Haftalık Matrisi PDF Olarak İndir</div><div className="text-[11px] text-slate-500">Yatay formatta tek sayfa tablo olarak kaydet</div></div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
-              </button>
-              <button type="button" onClick={() => { setIsShareModalOpen(false); window.print(); }} className="w-full p-3.5 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-900 font-semibold flex items-center justify-between transition-all cursor-pointer">
-                <div className="flex items-center gap-2.5 text-left">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center"><Printer className="w-4 h-4" /></div>
-                  <div><div className="text-sm font-bold">Doğrudan Yazdır (Baskı Al)</div><div className="text-[11px] text-slate-500">Yazıcıdan çıktı almak için diyalog aç</div></div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
-              </button>
             </div>
           </div>
         </div>
@@ -585,7 +538,7 @@ export const WeeklyMatrixView: React.FC<WeeklyMatrixViewProps> = ({
 
               {recipeModalTab === 'nutrition' && (
                 <div className="space-y-4 animate-in fade-in">
-                  <div className="grid grid-cols-4 gap-2 bg-stone-50 p-3 rounded-xl border border-slate-150 text-center font-mono">
+                  <div className="grid grid-cols-4 gap-2 bg-stone-50 p-3 rounded-xl border border-slate-200/80 text-center font-mono">
                     {[
                       { label: 'Kalori', val: selectedRecipeDetail.meal.calculatedNutrition?.calories || fullRecipe?.totalNutrition?.calories || 0, cls: 'text-slate-900' },
                       { label: 'Protein', val: `${selectedRecipeDetail.meal.calculatedNutrition?.protein || fullRecipe?.totalNutrition?.protein || 0}g`, cls: 'text-indigo-700' },

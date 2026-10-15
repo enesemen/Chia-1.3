@@ -100,8 +100,8 @@ export function personalizeRecipeForMeal(
   });
 
   const adaptedNutrition: RecipeTotalNutrition = syncedNutrition || {
-    calories: Math.round(targetP * 9 * 4 + targetC * 15 * 4 + targetF * 5 * 9),
-    protein: Math.round(targetP * 9), carbs: Math.round(targetC * 15), fat: Math.round(targetF * 5),
+    calories: Math.round(targetP * 6 * 4 + targetC * 15 * 4 + targetF * 5 * 9),
+    protein: Math.round(targetP * 6), carbs: Math.round(targetC * 15), fat: Math.round(targetF * 5),
     fiber: Math.max(3, Math.round(targetV * 2 + targetC * 2))
   };
 

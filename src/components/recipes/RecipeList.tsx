@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import {
-  Search, Plus, Clock, Trash2, ChevronRight, AlertTriangle, X, BookOpen, FolderPlus, Check, CheckSquare, Square
+  Search, Plus, Clock, Trash2, ChevronRight, X, BookOpen, FolderPlus, Check, CheckSquare, Square
 } from 'lucide-react';
 import { useNutrition } from '../../context/NutritionContext';
 import { Recipe } from '../../types/nutrition';
 import { BookletsModal } from '../booklets/BookletsModal';
-import { ChiaAssistantBanner } from '../common/ChiaMascot';
+import { ChiaAssistantBanner, ConfirmModal } from '../common/ChiaMascot';
 
 const DIET_TYPE_FILTER_OPTIONS = [
   { value: 'Tümü', label: 'Tümü' },
@@ -187,21 +187,15 @@ export const RecipeList: React.FC = () => {
         </div>
       )}
 
-      {recipeToDelete && (
-        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden text-slate-900 animate-in zoom-in-95 p-6 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto"><AlertTriangle className="w-6 h-6 text-rose-600" /></div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Silmek İstediğinize Emin Misiniz?</h3>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed"><span className="font-semibold text-slate-800">"{recipeToDelete.name}"</span> reçetesi ve ilgili tüm klinik detaylar kalıcı olarak silinecektir. Bu işlem geri alınamaz.</p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button type="button" onClick={() => setRecipeToDelete(null)} className="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors cursor-pointer flex-1">Vazgeç</button>
-              <button type="button" onClick={() => { deleteRecipe(recipeToDelete.id); setRecipeToDelete(null); }} className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-colors cursor-pointer flex-1 shadow-2xs">Evet, Kalıcı Olarak Sil</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={Boolean(recipeToDelete)}
+        title="Silmek İstediğinize Emin Misiniz?"
+        message={`"${recipeToDelete?.name || ''}" reçetesi ve ilgili tüm klinik detaylar kalıcı olarak silinecektir. Bu işlem geri alınamaz.`}
+        confirmText="Evet, Kalıcı Olarak Sil"
+        type="danger"
+        onCancel={() => setRecipeToDelete(null)}
+        onConfirm={() => { if (recipeToDelete) deleteRecipe(recipeToDelete.id); setRecipeToDelete(null); }}
+      />
 
       {selectedRecipeIds.length > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-2xl bg-slate-900 text-white p-3 sm:p-4 rounded-2xl shadow-2xl border border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3 animate-in slide-in-from-bottom-5">

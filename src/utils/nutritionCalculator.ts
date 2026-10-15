@@ -32,9 +32,12 @@ export function calculateRecipeTotalNutrition(ingredients: RecipeIngredient[]): 
   };
 }
 
-export function estimateExchangesFromIngredients(ingredients: RecipeIngredient[], foodDatabase: FoodItem[]): RecipeExchanges {
+export function estimateExchangesFromIngredients(
+  ingredients: RecipeIngredient[],
+  foodDatabase: FoodItem[] | ReadonlyMap<string, FoodItem>
+): RecipeExchanges {
   let proteinExc = 0, carbExc = 0, fatExc = 0, vegExc = 0, fruitExc = 0, dairyExc = 0;
-  const foodMap = new Map(foodDatabase.map(f => [f.id, f]));
+  const foodMap = Array.isArray(foodDatabase) ? new Map(foodDatabase.map(f => [f.id, f])) : foodDatabase;
 
   for (const ing of ingredients) {
     const food = foodMap.get(ing.foodId);
@@ -105,17 +108,6 @@ export function validateRecipeIntegrity(recipe: Recipe): { isValid: boolean; err
     return { isValid: false, error: `"${recipe.name}" tarifinin kayıtlı enerjisi (${calories} kcal) ile makrolardan hesaplanan enerjisi (${Math.round(calculatedCal)} kcal) arasında kritik sapma var.` };
   }
   return { isValid: true };
-}
-
-export function evaluateAlternativeCategory(
-  mainItem: { name: string; calories: number; protein: number; carbs: number; fat: number },
-  altItem: { name: string; calories: number; protein: number; carbs: number; fat: number }
-): { type: 'equivalent' | 'macro_different'; warning?: string } {
-  const calRatio = mainItem.calories > 0 ? Math.abs(mainItem.calories - altItem.calories) / mainItem.calories : 0;
-  const fatRatio = mainItem.fat > 0 ? Math.abs(mainItem.fat - altItem.fat) / mainItem.fat : 0;
-  const protDiff = Math.abs(mainItem.protein - altItem.protein);
-  if (calRatio <= 0.12 && fatRatio <= 0.25 && protDiff <= 5) return { type: 'equivalent' };
-  return { type: 'macro_different', warning: 'Bu alternatif seçildiğinde günlük makro ve enerji değerleri değişebilir.' };
 }
 
 export function checkMacroCompliance(

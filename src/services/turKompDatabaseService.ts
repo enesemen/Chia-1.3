@@ -82,7 +82,7 @@ export class TurKompDatabaseService {
     });
 
     const totalNutrition = calculateRecipeTotalNutrition(updatedIngredients);
-    const exchanges = estimateExchangesFromIngredients(updatedIngredients, this.foodList);
+    const exchanges = estimateExchangesFromIngredients(updatedIngredients, this.foodMapById);
     const exchangeParts: string[] = [];
     if (exchanges.protein > 0) exchangeParts.push(`${exchanges.protein} Et`);
     if (exchanges.carb > 0) exchangeParts.push(`${exchanges.carb} Tahıl`);

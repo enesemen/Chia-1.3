@@ -4,6 +4,7 @@ import { TURKISH_RECIPES, hydrateRecipeIngredients } from './turkishRecipes';
 export { TURKISH_RECIPES };
 
 const RAW_CLINICAL_TUPLES: CompactSeedTuple[] = [
+  ['REC-2026-001', 'Sarımsaklı Ballı Fırın Somon', 'Ana Yemek', 'Aile: Somon', 28, undefined, 'Kolay', 'Taşınmaz', 42, 'Akşam', ['Akşam'], 'GF+LF', ['STD', 'GF', 'LF', 'GF + LF'], ['Omega-3 Zengin', 'Hızlı Hazırlık', 'Anti-enflamatuar'], '3 P · 0.5 K · 1.5 Y · 1 Seb', 'Enerji hesabı yapılmadı', 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=800&q=80', 'Porsiyon: 3 Protein Değişimi Temelli Master Reçete', 'Somon çok yüksek kaliteli Omega-3 içerir. Fırında fazla kurutmamak lezzetin ve besin değerinin anahtarıdır.', 'Taze somon tercih edin. Pişirme kağıdı üzerinde 190°C fırında 14-16 dakika pişirmek idealdir. Servis öncesi taze sıkılmış limon ilave ediniz.', [['Somon Fileto', '90 g', 'food_salmon'], ['Çiçek Balı', '5 g'], ['Sızma Zeytinyağı', '5 ml', 'food_olive_oil'], ['Sarımsak (Ezilmiş)', '1 diş', 'food_garlic'], ['Kuşkonmaz veya Taze Fasulye', '80 g']], ['Somon filetosunu kağıt havlu ile kurulayın ve fırın tepsisine yağlı kağıt serin.', 'Küçük bir kapta bal, ezilmiş sarımsak ve zeytinyağını emülsifiye olana kadar karıştırın.', 'Sosu somonun üzerine sürün. Yanına kuşkonmazları yerleştirip hafif tuz serpin.', 'Önceden ısıtılmış 190°C fırında 15 dakika pişirin. Sıcak servis yapın.'], [254, 20.2, 6.8, 16.5, 2.1], [3, 0.5, 1.5, 1, 0, 0]],
   ['REC-2026-002', 'Fırın Sebzeli Kekikli Çıtır Tavuk', 'Ana Yemek', 'Aile: Tavuk', 40, undefined, 'Kolay', 'Taşımaya Uygun', 65, 'Öğle', ['Öğle', 'Akşam'], 'GF+LF', ['STD', 'GF', 'LF', 'GF + LF'], ['Yüksek Protein', 'Meal-Prep', 'Glutensiz'], '4 P · 0.5 K · 1.5 Y · 2 Seb', 'Enerji hesabı yapılmadı', 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=800&q=80', 'Porsiyon: 4 Protein Değişimi Temelli Master Reçete', 'Tavuk göğsü yağsız kas kütlesi koruması için temel protein kaynağıdır. Fırında sebzelerle pişirilerek glisemik yük düşürülür.', 'Önceden pişirilip cam saklama kaplarında 3 güne kadar buzdolabında tazeliğini korur.', [['Tavuk Göğsü (Kuşbaşı)', '120 g', 'food_chicken_breast'], ['Renkli Biberler & Kabak', '150 g', 'food_zucchini'], ['Sızma Zeytinyağı', '1 tatlı kaşığı', 'food_olive_oil'], ['Dağ Kekiği & Kırmızı Biber', '1 çay kaşığı']], ['Tavuk göğsünü ve sebzeleri lokmalık doğrayın.', 'Zeytinyağı, kekik ve baharatlarla harmanlayın.', 'Fırın tepsisine tek kat halinde yayıp 200°C fırında 25-30 dk kızarana kadar pişirin.'], [310, 32, 12, 12, 4.5], [4, 0.5, 1.5, 2, 0, 0]],
   ['REC-2026-003', 'Zencefilli Kırmızı Mercimek Çorbası', 'Çorba', 'Aile: Çorba', 30, undefined, 'Kolay', 'Taşımaya Uygun', 88, 'Öğle', ['Öğle', 'Akşam'], 'GF+LF', ['STD', 'GF', 'LF', 'GF + LF', 'Vejetaryen'], ['Bitkisel Protein', 'Isıtıcı Baharatlar', 'Lif Zengin'], '1 P · 2 K · 1 Y · 1 Seb', 'Enerji hesabı yapılmadı', 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80', 'Porsiyon: 2 Karbonhidrat & 1 Protein Değişimi', 'Taze zencefil sindirimi uyarır ve gaz oluşumunu engeller. Mercimeğin prebiyotik lifleri bağırsak mikrobiyotasını besler.', undefined, [['Kırmızı Mercimek', '40 g', 'food_red_lentils'], ['Havuç & Kuru Soğan', '70 g'], ['Taze Rendelenmiş Zencefil', '1 tatlı kaşığı'], ['Zeytinyağı & Kimyon', '1 tatlı kaşığı']], ['Soğan ve zencefili zeytinyağında kokusu çıkana dek hafifçe çevirin.', 'Yıkanmış mercimek ve havucu ekleyin, sıcak su ilave edin.', 'Kısık ateşte 20 dk kaynatıp pürüzsüz kıvama gelene dek blenderdan geçirin.'], [235, 11, 33, 5.5, 7.2], [1, 2, 1, 1, 0, 0]],
   ['REC-2026-004', 'Avokadolu & Lorlu Çırpılmış Yumurta', 'Kahvaltı', 'Aile: Yumurta', 13, undefined, 'Kolay', 'Taşınmaz', 54, 'Kahvaltı', ['Kahvaltı'], 'GF', ['STD', 'GF', 'Vejetaryen'], ['Yüksek Protein', 'Kolin Kaynağı', 'Tok Tutan'], '2 P · 1 K · 1.5 Y · 1 Seb', 'Enerji hesabı yapılmadı', 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80', 'Porsiyon: 2 Protein Değişimi Temelli Kahvaltı', 'Yumurta sarısındaki kolin nörotransmitter sentezi için esansiyeldir. Avokado ile birleşimi doygunluk süresini 4 saate çıkarır.', undefined, [['Organik Yumurta', '2 adet', 'food_egg'], ['Yağsız / Az Tuzlu Lor Peyniri', '2 yemek kaşığı', 'food_curd_cheese'], ['Olgun Avokado', '1/3 adet (45g)', 'food_avocado'], ['Roka & Çeri Domates', '1 kase']], ['Yumurtaları bir kapta çatalla hafifçe çırpın.', 'Kısık ateşteki tavada kremsi kalacak şekilde spatulayla çevirerek pişirin.', 'Ocaktan alırken lor peynirini ekleyin. Yanında dilim avokado ve domatesle servis edin.'], [280, 18, 9, 19, 3.5], [2, 1, 1.5, 1, 0, 0]],
@@ -26,37 +27,5 @@ const RAW_CLINICAL_TUPLES: CompactSeedTuple[] = [
 
 export const INITIAL_RECIPES: Recipe[] = [
   ...TURKISH_RECIPES,
-  {
-    id: 'REC-2026-001', name: 'Sarımsaklı Ballı Fırın Somon', category: 'Ana Yemek', family: 'Aile: Somon',
-    prepTimeMinutes: 28, practicality: 'Kolay', transportability: 'Taşınmaz', planCount: 42, servings: 1,
-    mealType: 'Akşam', mealTypes: ['Akşam'], dietType: 'GF+LF', dietTypes: ['STD', 'GF', 'LF', 'GF + LF'],
-    tags: ['Omega-3 Zengin', 'Hızlı Hazırlık', 'Anti-enflamatuar'], exchangeSummary: '3 P · 0.5 K · 1.5 Y · 1 Seb',
-    energyDisplay: 'Enerji hesabı yapılmadı', imageUrl: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=800&q=80',
-    portionSub: 'Porsiyon: 3 Protein Değişimi Temelli Master Reçete',
-    clinicalNote: 'Somon çok yüksek kaliteli Omega-3 içerir. Fırında fazla kurutmamak lezzetin ve besin değerinin anahtarıdır.',
-    kitchenNotes: 'Taze somon tercih edin. Pişirme kağıdı üzerinde 190°C fırında 14-16 dakika pişirmek idealdir. Servis öncesi taze sıkılmış limon ilave ediniz.',
-    detailedIngredients: [
-      { order: 1, name: 'Somon Fileto', amountDisplay: '90 g', foodId: 'food_salmon' },
-      { order: 2, name: 'Çiçek Balı', amountDisplay: '5 g' },
-      { order: 3, name: 'Sızma Zeytinyağı', amountDisplay: '5 ml', foodId: 'food_olive_oil' },
-      { order: 4, name: 'Sarımsak (Ezilmiş)', amountDisplay: '1 diş', foodId: 'food_garlic' },
-      { order: 5, name: 'Kuşkonmaz veya Taze Fasulye', amountDisplay: '80 g' }
-    ],
-    steps: [
-      { stepNumber: 1, instruction: 'Somon filetosunu kağıt havlu ile kurulayın ve fırın tepsisine yağlı kağıt serin.' },
-      { stepNumber: 2, instruction: 'Küçük bir kapta bal, ezilmiş sarımsak ve zeytinyağını emülsifiye olana kadar karıştırın.' },
-      { stepNumber: 3, instruction: 'Sosu somonun üzerine sürün. Yanına kuşkonmazları yerleştirip hafif tuz serpin.' },
-      { stepNumber: 4, instruction: 'Önceden ısıtılmış 190°C fırında 15 dakika pişirin. Sıcak servis yapın.' }
-    ],
-    ingredients: [
-      { id: 'ing_101', foodId: 'food_salmon', foodName: 'Somon Fileto', amount: 90, unit: 'g', calculatedCalories: 185, calculatedProtein: 19.8, calculatedCarbs: 0, calculatedFat: 11.1, calculatedFiber: 0 },
-      { id: 'ing_102', foodId: 'food_olive_oil', foodName: 'Sızma Zeytinyağı', amount: 5, unit: 'ml', calculatedCalories: 44, calculatedProtein: 0, calculatedCarbs: 0, calculatedFat: 5.0, calculatedFiber: 0 }
-    ],
-    totalNutrition: { calories: 254, protein: 20.2, carbs: 6.8, fat: 16.5, fiber: 2.1 },
-    exchanges: { protein: 3, carb: 0.5, fat: 1.5, vegetable: 1, fruit: 0, dairy: 0 },
-    seasonMonths: ['Tüm Yıl'], isDraft: false, version: '1.2', createdAt: '2026-03-01T10:00:00.000Z', updatedAt: '2026-03-20T10:00:00.000Z'
-  },
-  ...defineSeedRecipes(RAW_CLINICAL_TUPLES)
+  ...defineSeedRecipes(RAW_CLINICAL_TUPLES).map(hydrateRecipeIngredients)
 ];
-
-INITIAL_RECIPES.forEach((r, idx) => { INITIAL_RECIPES[idx] = hydrateRecipeIngredients(r); });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, Plus, Check } from 'lucide-react';
 import { useNutrition } from '../../context/NutritionContext';
 import { FoodCategory, FoodItem, FoodSource } from '../../types/nutrition';
@@ -27,20 +27,24 @@ export const FoodsDatabaseView: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newFoodForm, setNewFoodForm] = useState(INITIAL_FOOD_FORM);
 
-  const turkompCount = foods.filter(f => f.source === 'TürKomp' || !f.source).length;
-  const usdaCount = foods.filter(f => f.source === 'USDA').length;
+  const { turkompCount, usdaCount } = useMemo(() => {
+    const tk = foods.filter(f => f.source === 'TürKomp' || !f.source).length;
+    return { turkompCount: tk, usdaCount: foods.length - tk };
+  }, [foods]);
 
-  const filteredFoods = foods.filter(food => {
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      const match = food.name.toLowerCase().includes(q) || food.category.toLowerCase().includes(q) || food.foodCode?.toLowerCase().includes(q) || food.latinName?.toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    if (sourceFilter === 'TürKomp' && food.source !== 'TürKomp' && food.source) return false;
-    if (sourceFilter === 'USDA' && food.source !== 'USDA') return false;
-    if (selectedCategory !== 'Tümü' && food.category !== selectedCategory) return false;
-    return true;
-  });
+  const filteredFoods = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return foods.filter(food => {
+      if (sourceFilter === 'TürKomp' && food.source !== 'TürKomp' && food.source) return false;
+      if (sourceFilter === 'USDA' && food.source !== 'USDA') return false;
+      if (selectedCategory !== 'Tümü' && food.category !== selectedCategory) return false;
+      if (!q) return true;
+      return (
+        food.name.toLowerCase().includes(q) || food.category.toLowerCase().includes(q) ||
+        food.foodCode?.toLowerCase().includes(q) || food.latinName?.toLowerCase().includes(q)
+      );
+    });
+  }, [foods, search, sourceFilter, selectedCategory]);
 
   const handleSaveCustomFood = (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,12 +168,12 @@ export const FoodsDatabaseView: React.FC = () => {
                     <td className="py-3 px-4 font-mono text-[11px] text-slate-600">
                       {ex ? (
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          {ex.protein ? <span className="bg-red-50 text-red-800 px-1.5 py-0.2 rounded border border-red-200">{ex.protein} P</span> : null}
-                          {ex.carb ? <span className="bg-amber-50 text-amber-800 px-1.5 py-0.2 rounded border border-amber-200">{ex.carb} K</span> : null}
-                          {ex.fat ? <span className="bg-yellow-50 text-yellow-800 px-1.5 py-0.2 rounded border border-yellow-200">{ex.fat} Y</span> : null}
-                          {ex.vegetable ? <span className="bg-emerald-50 text-emerald-800 px-1.5 py-0.2 rounded border border-emerald-200">{ex.vegetable} Seb</span> : null}
-                          {ex.fruit ? <span className="bg-purple-50 text-purple-800 px-1.5 py-0.2 rounded border border-purple-200">{ex.fruit} Mey</span> : null}
-                          {ex.dairy ? <span className="bg-cyan-50 text-cyan-800 px-1.5 py-0.2 rounded border border-cyan-200">{ex.dairy} Süt</span> : null}
+                          {ex.protein ? <span className="bg-red-50 text-red-800 px-1.5 py-0.5 rounded border border-red-200">{ex.protein} P</span> : null}
+                          {ex.carb ? <span className="bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200">{ex.carb} K</span> : null}
+                          {ex.fat ? <span className="bg-yellow-50 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200">{ex.fat} Y</span> : null}
+                          {ex.vegetable ? <span className="bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-200">{ex.vegetable} Seb</span> : null}
+                          {ex.fruit ? <span className="bg-purple-50 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200">{ex.fruit} Mey</span> : null}
+                          {ex.dairy ? <span className="bg-cyan-50 text-cyan-800 px-1.5 py-0.5 rounded border border-cyan-200">{ex.dairy} Süt</span> : null}
                         </div>
                       ) : <span className="text-slate-400">-</span>}
                     </td>

@@ -1,7 +1,7 @@
 # 🌿 Chia 1.3 — Klinik Menü, Türk Mutfağı Reçeteleri ve Besin Planlama Stüdyosu
 
 [![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-7.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Vite](https://img.shields.io/badge/Vite-6.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
@@ -56,8 +56,8 @@
 
 1. Depoyu klonlayın:
    ```bash
-   git clone https://github.com/enesemen/chia-1.1.git
-   cd chia-1.1
+   git clone https://github.com/enesemen/Chia-1.3.git
+   cd Chia-1.3
    ```
 
 2. Bağımlılıkları yükleyin:
@@ -89,17 +89,14 @@ npm run preview
 chia/
 ├── src/
 │   ├── components/
-│   │   ├── archetypes/      # Diyet arketipleri vitrini
 │   │   ├── booklets/        # Reçete kitapçıkları & baskı görünümleri
-│   │   ├── clients/         # Danışan karne ve tüketim takibi
 │   │   ├── common/          # Chia maskot ve ortak UI bileşenleri
-│   │   ├── documents/       # Klinik eğitim dokümanları kütüphanesi
 │   │   ├── exchanges/       # TDD değişim sistemi referans tablosu
 │   │   ├── foods/           # TürKomp & USDA besin veritabanı
 │   │   ├── layout/          # Navbar ve üst navigasyon
 │   │   ├── planner/         # 7 Günlük Menü Planlama Matrisi & Swap Modalları
 │   │   └── recipes/         # Reçete Sihirbazı, Liste ve Detay Modalları
-│   ├── context/             # NutritionContext ve ClientTrackingContext
+│   ├── context/             # NutritionContext state yönetimi
 │   ├── data/                # 59 Türk tarifi, TürKomp besinleri ve değişim verileri
 │   ├── services/            # Menü motoru, TürKomp servisi ve PDF/HTML dışa aktarma
 │   ├── types/               # Beslenme, reçete ve menü planlama tip tanımları
