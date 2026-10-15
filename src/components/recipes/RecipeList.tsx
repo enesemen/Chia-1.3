@@ -75,37 +75,25 @@ export const RecipeList: React.FC = () => {
         }
       />
 
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
-        <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-          <input type="text" value={filters.search} onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))} placeholder="Tarif, aile veya içerik ara (Örn: Somon, Etli Pilav, Eliminasyon, omega3)..." className="w-full pl-10 pr-4 py-2.5 text-xs rounded-lg border border-slate-200 bg-stone-50/60 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-800 transition-all font-medium" />
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5 text-xs">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
+          <input type="text" value={filters.search} onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))} placeholder="Tarif, aile veya içerik ara (Örn: Somon, Etli Pilav, Eliminasyon, omega3)..." className="w-full pl-10 pr-4 py-2 text-xs rounded-lg border border-slate-200 bg-stone-50/60 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-800 transition-all font-medium" />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Diyet Tipi:</label>
-            <select value={filters.dietType} onChange={e => setFilters(prev => ({ ...prev, dietType: e.target.value }))} className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-amber-800 text-xs">
-              {DIET_TYPE_FILTER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Öğün:</label>
-            <select value={filters.mealType} onChange={e => setFilters(prev => ({ ...prev, mealType: e.target.value }))} className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-amber-800 text-xs">
-              {MEAL_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Pratiklik:</label>
-            <select value={filters.practicality} onChange={e => setFilters(prev => ({ ...prev, practicality: e.target.value }))} className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-amber-800 text-xs">
-              {PRACTICALITY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Taşıma:</label>
-            <select value={filters.transportability} onChange={e => setFilters(prev => ({ ...prev, transportability: e.target.value }))} className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-amber-800 text-xs">
-              {TRANSPORT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
+          <select value={filters.dietType} onChange={e => setFilters(prev => ({ ...prev, dietType: e.target.value }))} className="px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-800 text-xs cursor-pointer">
+            {DIET_TYPE_FILTER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.value === 'Tümü' ? 'Diyet: Tümü' : opt.label}</option>)}
+          </select>
+          <select value={filters.mealType} onChange={e => setFilters(prev => ({ ...prev, mealType: e.target.value }))} className="px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-800 text-xs cursor-pointer">
+            {MEAL_OPTIONS.map(opt => <option key={opt} value={opt}>{opt === 'Tümü' ? 'Öğün: Tümü' : opt}</option>)}
+          </select>
+          <select value={filters.practicality} onChange={e => setFilters(prev => ({ ...prev, practicality: e.target.value }))} className="px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-800 text-xs cursor-pointer">
+            {PRACTICALITY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt === 'Tümü' ? 'Pratiklik: Tümü' : opt}</option>)}
+          </select>
+          <select value={filters.transportability} onChange={e => setFilters(prev => ({ ...prev, transportability: e.target.value }))} className="px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-800 text-xs cursor-pointer">
+            {TRANSPORT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt === 'Tümü' ? 'Taşıma: Tümü' : opt}</option>)}
+          </select>
         </div>
       </div>
 

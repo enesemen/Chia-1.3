@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import {
-  ArrowLeft, Edit3, Plus, Trash2, Archive, X, UtensilsCrossed, BookOpen,
+  Edit3, Plus, Trash2, Archive, X, UtensilsCrossed, BookOpen,
   Clock, Layers, Sparkles, Info, CheckCircle2, ShieldCheck, Share2,
-  Printer, FileText, Download, AlertTriangle, Upload
+  Printer, FileText, Download, Upload, MoreHorizontal, ChevronDown
 } from 'lucide-react';
 import { useNutrition } from '../../context/NutritionContext';
 import { getUnifiedRecipeIngredients } from '../../data/turkishRecipes';
 import { compressImageFile, generateRecipeCardPrintableHtml } from '../../services/pdfExportService';
+import { ConfirmModal } from '../common/ChiaMascot';
 
 export const RecipeDetailModal: React.FC = () => {
   const { selectedRecipeForDetail: recipe, closeDetail, openWizard, deleteRecipe, saveRecipe } = useNutrition();
 
   const [activeTab, setActiveTab] = useState<'ingredients' | 'steps' | 'kitchen' | 'variations'>('ingredients');
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [showPrintPreviewModal, setShowPrintPreviewModal] = useState(false);
+  const [openMenu, setOpenMenu] = useState<'share' | 'more' | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
 
@@ -69,8 +69,8 @@ export const RecipeDetailModal: React.FC = () => {
         printWin.document.write(generateRecipeCardPrintableHtml(recipe, getIngredientLines(), displaySteps));
         printWin.document.close();
         triggerToast('PDF baskı penceresi açıldı!');
-      } else setShowPrintPreviewModal(true);
-    } catch { setShowPrintPreviewModal(true); }
+      } else window.print();
+    } catch { window.print(); }
   };
 
   const handleDownloadHtmlCard = () => {
@@ -98,33 +98,74 @@ export const RecipeDetailModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl my-auto overflow-hidden flex flex-col max-h-[95vh] text-slate-900">
-        <div className="px-5 py-3.5 border-b border-slate-200 bg-white flex items-center justify-between gap-2 overflow-x-auto">
-          <button onClick={closeDetail} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-300 hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors whitespace-nowrap">
-            <ArrowLeft className="w-3.5 h-3.5" /><span>Kütüphaneye Dön</span>
-          </button>
+        <div className="px-5 py-3 border-b border-slate-200 bg-stone-50/70 flex items-center justify-between gap-2 relative">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="px-2.5 py-0.5 rounded-md bg-amber-900 text-white text-[10px] font-bold uppercase tracking-wider shrink-0">{recipe.category || 'Reçete'}</span>
+            <span className="text-xs font-mono text-slate-400 truncate hidden sm:inline">{recipe.id}</span>
+          </div>
+
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setShowShareModal(true)} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold shadow-2xs transition-colors whitespace-nowrap cursor-pointer shrink-0">
-              <Share2 className="w-3.5 h-3.5" /><span>Hasta ile Paylaş / PDF</span>
-            </button>
-            <button onClick={() => { closeDetail(); openWizard(recipe); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold shadow-2xs transition-colors whitespace-nowrap">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenMenu(openMenu === 'share' ? null : 'share')}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+              >
+                <Share2 className="w-3.5 h-3.5" /><span>Paylaş & PDF</span><ChevronDown className="w-3.5 h-3.5 opacity-80" />
+              </button>
+              {openMenu === 'share' && (
+                <div className="absolute right-0 mt-1.5 w-60 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs font-medium text-slate-700 animate-in fade-in zoom-in-95">
+                  <button type="button" onClick={() => { setOpenMenu(null); handlePrintPDF(); }} className="w-full px-3.5 py-2 text-left hover:bg-emerald-50 hover:text-emerald-900 flex items-center gap-2.5 cursor-pointer">
+                    <Printer className="w-4 h-4 text-emerald-700" /><div><div className="font-bold">A4 Reçete Kartı Yazdır / PDF</div><div className="text-[10px] text-slate-400">Tek tıkla hasta teslim kartı</div></div>
+                  </button>
+                  <button type="button" onClick={() => { setOpenMenu(null); handleCopyFullRecipe(); }} className="w-full px-3.5 py-2 text-left hover:bg-stone-50 flex items-center gap-2.5 cursor-pointer">
+                    <FileText className="w-4 h-4 text-slate-600" /><div><div className="font-bold">WhatsApp / Metin Kopyala</div><div className="text-[10px] text-slate-400">Biçimlendirilmiş tam metin</div></div>
+                  </button>
+                  <button type="button" onClick={() => { setOpenMenu(null); handleDownloadHtmlCard(); }} className="w-full px-3.5 py-2 text-left hover:bg-stone-50 flex items-center gap-2.5 cursor-pointer">
+                    <Download className="w-4 h-4 text-blue-600" /><div><div className="font-bold">Bağımsız Kart İndir (.html)</div><div className="text-[10px] text-slate-400">Çevrimdışı açılabilir dosya</div></div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button onClick={() => { closeDetail(); openWizard(recipe); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold shadow-2xs transition-colors cursor-pointer">
               <Edit3 className="w-3.5 h-3.5" /><span>Düzenle</span>
             </button>
-            <button type="button" onClick={handleCreateVariation} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-white text-xs font-semibold shadow-2xs transition-colors whitespace-nowrap cursor-pointer">
-              <Plus className="w-3.5 h-3.5" /><span>Varyasyon Oluştur</span>
-            </button>
-            <button onClick={() => setShowDeleteConfirm(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-medium transition-colors whitespace-nowrap">
-              <Trash2 className="w-3.5 h-3.5 text-rose-600" /><span>Tarifi Sil</span>
-            </button>
-            <button
-              onClick={() => {
-                const nextDraft = !recipe.isDraft;
-                saveRecipe({ ...recipe, isDraft: nextDraft, updatedAt: new Date().toISOString() });
-                triggerToast(nextDraft ? `"${recipe.name}" taslak/arşiv durumuna alındı.` : `"${recipe.name}" tekrar aktif kütüphaneye alındı.`);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer"
-            >
-              <Archive className="w-3.5 h-3.5 text-red-600" /><span>{recipe.isDraft ? 'Aktifleştir' : 'Arşivle'}</span>
-            </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenMenu(openMenu === 'more' ? null : 'more')}
+                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                title="Diğer İşlemler"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+              {openMenu === 'more' && (
+                <div className="absolute right-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50 text-xs font-semibold text-slate-700 animate-in fade-in zoom-in-95">
+                  <button type="button" onClick={() => { setOpenMenu(null); handleCreateVariation(); }} className="w-full px-3.5 py-2 text-left hover:bg-amber-50 text-amber-950 flex items-center gap-2 cursor-pointer">
+                    <Plus className="w-3.5 h-3.5 text-amber-800" /><span>Varyasyon Oluştur</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenMenu(null);
+                      const nextDraft = !recipe.isDraft;
+                      saveRecipe({ ...recipe, isDraft: nextDraft, updatedAt: new Date().toISOString() });
+                      triggerToast(nextDraft ? `"${recipe.name}" taslak/arşiv durumuna alındı.` : `"${recipe.name}" tekrar aktif kütüphaneye alındı.`);
+                    }}
+                    className="w-full px-3.5 py-2 text-left hover:bg-stone-50 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Archive className="w-3.5 h-3.5 text-slate-500" /><span>{recipe.isDraft ? 'Aktifleştir' : 'Arşivle / Taslağa Al'}</span>
+                  </button>
+                  <div className="my-1 border-t border-slate-100" />
+                  <button type="button" onClick={() => { setOpenMenu(null); setShowDeleteConfirm(true); }} className="w-full px-3.5 py-2 text-left hover:bg-rose-50 text-rose-600 flex items-center gap-2 cursor-pointer">
+                    <Trash2 className="w-3.5 h-3.5" /><span>Tarifi Kalıcı Sil</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button onClick={closeDetail} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors ml-1 cursor-pointer" title="Kapat"><X className="w-5 h-5" /></button>
           </div>
         </div>
@@ -301,107 +342,16 @@ export const RecipeDetailModal: React.FC = () => {
         </div>
       </div>
 
-      {showShareModal && (
-        <div className="fixed inset-0 z-[60] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col text-slate-900 animate-in zoom-in-95">
-            <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-emerald-800 text-white flex items-center justify-center"><Share2 className="w-4 h-4" /></div>
-                <div><h3 className="text-sm font-bold text-slate-900">Hasta ile Paylaş & PDF İndir</h3><p className="text-[11px] text-slate-500">Dyt. Zeynep Hale · Reçete Dışa Aktarma</p></div>
-              </div>
-              <button type="button" onClick={() => setShowShareModal(false)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="p-5 space-y-3">
-              <button type="button" onClick={() => { handlePrintPDF(); setShowShareModal(false); }} className="w-full p-4 rounded-xl border border-emerald-300 bg-emerald-50/90 hover:bg-emerald-100 text-left transition-all cursor-pointer group flex items-start gap-3.5 shadow-2xs">
-                <div className="w-10 h-10 rounded-lg bg-emerald-800 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform mt-0.5"><Printer className="w-5 h-5" /></div>
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-emerald-950 flex items-center justify-between">
-                    <span>PDF Olarak İndir / Yazdır</span><span className="text-[10px] bg-emerald-800 text-white px-2 py-0.5 rounded font-mono font-semibold">Baskı / PDF</span>
-                  </div>
-                  <p className="text-[11px] text-emerald-800 mt-1 leading-relaxed">Açılan yazdırma penceresinde "PDF Olarak Kaydet" seçeneğiyle tarif fotoğrafı ve klinik bilgiler içeren hasta kartını indirin.</p>
-                </div>
-              </button>
-
-              <button type="button" onClick={() => { handleCopyFullRecipe(); setShowShareModal(false); }} className="w-full p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition-all cursor-pointer group flex items-start gap-3.5 shadow-2xs">
-                <div className="w-10 h-10 rounded-lg bg-slate-800 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform mt-0.5"><FileText className="w-5 h-5" /></div>
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-slate-900">Tüm Tarifi Metin Olarak Kopyala</div>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">WhatsApp, E-posta veya mesaja doğrudan yapıştırmak için düzenli reçete metnini panoya kopyalayın.</p>
-                </div>
-              </button>
-            </div>
-
-            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
-              <button type="button" onClick={() => setShowShareModal(false)} className="px-4 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors cursor-pointer">Kapat</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showPrintPreviewModal && (
-        <div className="fixed inset-0 z-[70] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl my-auto flex flex-col overflow-hidden text-slate-900 max-h-[90vh]">
-            <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-900 text-white flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2"><Printer className="w-4 h-4 text-emerald-400" /><h3 className="text-xs font-bold uppercase tracking-wider">PDF & Baskı Ön İzleme - {recipe.name}</h3></div>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={handleDownloadHtmlCard} className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer">
-                  <Download className="w-3.5 h-3.5" /><span>İndir (.html)</span>
-                </button>
-                <button type="button" onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer">
-                  <Printer className="w-3.5 h-3.5" /><span>Yazdır / PDF</span>
-                </button>
-                <button type="button" onClick={() => setShowPrintPreviewModal(false)} className="p-1 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer ml-2"><X className="w-5 h-5" /></button>
-              </div>
-            </div>
-
-            <div className="p-6 overflow-y-auto space-y-4 bg-slate-50 text-xs">
-              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-                <div className="border-b-2 border-emerald-800 pb-3 flex justify-between items-start">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Klinik Diyet & Reçete Kartı</span>
-                    <h1 className="text-xl font-bold text-slate-900 mt-1">{recipe.name}</h1>
-                    <p className="text-xs text-slate-600">Dyt. Zeynep Hale - Beslenme & Diyet Kliniği</p>
-                  </div>
-                  <div className="text-right text-[11px] text-slate-500 font-mono"><div>Kod: {recipe.id}</div><div>{new Date().toLocaleDateString('tr-TR')}</div></div>
-                </div>
-                {recipe.imageUrl && <div className="w-full h-48 rounded-xl overflow-hidden border border-slate-200 my-2"><img src={recipe.imageUrl} alt={recipe.name} className="w-full h-full object-cover" /></div>}
-                <div className="grid grid-cols-2 gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <div><div className="text-[10px] font-bold text-emerald-800 uppercase">Temel Değişim Karşılığı</div><div className="text-xs font-bold text-emerald-950 mt-0.5">{recipe.exchangeSummary || 'Tanımlanmadı'}</div></div>
-                  <div><div className="text-[10px] font-bold text-emerald-800 uppercase">Enerji & Besin Değerleri</div><div className="text-xs font-bold text-emerald-950 mt-0.5">{recipe.energyDisplay || 'Hesaplanmadı'}</div></div>
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 border-b border-slate-200 pb-1 mb-2 uppercase text-[11px]">Reçete Malzemeleri & Gramajlar</h4>
-                  <ul className="space-y-1">{getIngredientLines().map((line, idx) => <li key={idx} className="text-slate-700">{line}</li>)}</ul>
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 border-b border-slate-200 pb-1 mb-2 uppercase text-[11px]">Hazırlanış Adımları</h4>
-                  <ol className="space-y-1.5">{displaySteps.map((st, i) => <li key={i} className="text-slate-700"><strong>Adım {st.stepNumber}:</strong> {st.instruction}</li>)}</ol>
-                </div>
-                {recipe.clinicalNote && <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg italic text-amber-900 text-xs"><strong>Diyetisyen Notu:</strong> "{recipe.clinicalNote}"</div>}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[80] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden text-slate-900 animate-in zoom-in-95 p-6 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto"><AlertTriangle className="w-6 h-6 text-rose-600" /></div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Silmek İstediğinize Emin Misiniz?</h3>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                <span className="font-semibold text-slate-800">"{recipe.name}"</span> reçetesi ve ilgili tüm klinik detaylar kalıcı olarak silinecektir. Bu işlem geri alınamaz.
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button type="button" onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors cursor-pointer flex-1">Vazgeç</button>
-              <button type="button" onClick={() => { deleteRecipe(recipe.id); setShowDeleteConfirm(false); closeDetail(); }} className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-colors cursor-pointer flex-1 shadow-2xs">Evet, Kalıcı Olarak Sil</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Silmek İstediğinize Emin Misiniz?"
+        message={`"${recipe.name}" reçetesi ve ilgili tüm klinik detaylar kalıcı olarak silinecektir. Bu işlem geri alınamaz.`}
+        confirmText="Evet, Kalıcı Olarak Sil"
+        cancelText="Vazgeç"
+        type="danger"
+        onConfirm={() => { deleteRecipe(recipe.id); setShowDeleteConfirm(false); closeDetail(); }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };

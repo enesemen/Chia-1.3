@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ChiaAssistantBanner } from '../common/ChiaMascot';
-import { Sparkles, User, Clock, CheckCircle2, RefreshCw, Printer, Utensils, Search, X, Shuffle, Settings, Grid, PieChart } from 'lucide-react';
+import { Sparkles, User, Clock, CheckCircle2, RefreshCw, Printer, Utensils, Search, X, Shuffle, Settings, Grid, PieChart, Sliders } from 'lucide-react';
 import { useNutrition } from '../../context/NutritionContext';
 import { DietType } from '../../types/nutrition';
 import {
@@ -117,6 +117,7 @@ export const MenuPlannerView: React.FC = () => {
   }, [isWeekdayPortableEnabled]);
 
   const [macroRatios, setMacroRatios] = useState<MacroRatioConfig>({ proteinPct: 20, carbPct: 50, fatPct: 30 });
+  const [showCustomMacroSliders, setShowCustomMacroSliders] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<WeeklyMenuPlan | null>(null);
   const [optimizationNotice, setOptimizationNotice] = useState<string | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -587,23 +588,34 @@ export const MenuPlannerView: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block font-semibold text-slate-700 text-xs">Dağılım Modeli</label>
-                  <span className="text-[11px] text-amber-900 font-bold font-mono">
-                    {MACRO_PRESETS.find(p => p.carbPct === macroRatios.carbPct && p.proteinPct === macroRatios.proteinPct && p.fatPct === macroRatios.fatPct)?.label || 'Özel Ayar'}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomMacroSliders(!showCustomMacroSliders)}
+                    className="flex items-center gap-1 text-[11px] text-amber-900 hover:underline font-bold cursor-pointer"
+                  >
+                    <Sliders className="w-3 h-3" /><span>{showCustomMacroSliders ? 'İnce Ayarı Gizle' : 'Özel Oran Ayarla'}</span>
+                  </button>
                 </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                  {MACRO_PRESETS.map(preset => {
-                    const isSelected = preset.carbPct === macroRatios.carbPct && preset.proteinPct === macroRatios.proteinPct && preset.fatPct === macroRatios.fatPct;
-                    return (
-                      <button key={preset.id} type="button" onClick={() => setMacroRatios({ carbPct: preset.carbPct, proteinPct: preset.proteinPct, fatPct: preset.fatPct })} className={`px-3 py-1.5 rounded-lg border text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${isSelected ? 'bg-amber-900 border-amber-900 text-white shadow-2xs' : 'bg-stone-50 hover:bg-slate-100 border-slate-200 text-slate-700'}`}>{preset.label}</button>
-                    );
-                  })}
-                </div>
+                <select
+                  value={MACRO_PRESETS.find(p => p.carbPct === macroRatios.carbPct && p.proteinPct === macroRatios.proteinPct && p.fatPct === macroRatios.fatPct)?.id || 'custom'}
+                  onChange={e => {
+                    const found = MACRO_PRESETS.find(p => p.id === e.target.value);
+                    if (found) setMacroRatios({ carbPct: found.carbPct, proteinPct: found.proteinPct, fatPct: found.fatPct });
+                    else setShowCustomMacroSliders(true);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-stone-50/70 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-900 cursor-pointer"
+                >
+                  {MACRO_PRESETS.map(preset => (
+                    <option key={preset.id} value={preset.id}>{preset.label} — {preset.shortDesc}</option>
+                  ))}
+                  <option value="custom">Özel Makro Oranı (%{macroRatios.carbPct} KH · %{macroRatios.proteinPct} P · %{macroRatios.fatPct} Y)</option>
+                </select>
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500">
-                  <span>Görsel Dağılım Çubuğu</span><span className="font-mono">%{macroRatios.carbPct} KH · %{macroRatios.proteinPct} PRT · %{macroRatios.fatPct} YAĞ</span>
+                  <span>Hedef Gramaj Özeti</span>
+                  <span className="font-mono text-slate-800 font-bold">{targetMacroGrams.carbG}g KH · {targetMacroGrams.proteinG}g P · {targetMacroGrams.fatG}g Y</span>
                 </div>
                 <div className="h-4 w-full bg-slate-100 rounded-lg overflow-hidden flex shadow-inner border border-slate-200/80">
                   <div style={{ width: `${macroRatios.carbPct}%` }} className="bg-amber-500 flex items-center justify-center text-[9px] font-bold text-white">{macroRatios.carbPct >= 12 && `%${macroRatios.carbPct} KH`}</div>
@@ -612,30 +624,31 @@ export const MenuPlannerView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-3 pt-1">
-                <div className="text-[11px] font-semibold text-slate-500 px-0.5">İlerleme Çubukları ile Serbest Ayar (Yüzde, Gramaj ve Kalori)</div>
-                {macroSliderConfigs.map(cfg => {
-                  const macroCal = Math.round((activeArchetypePreset.targetCalories * cfg.pct) / 100);
-                  const macroG = Math.round(macroCal / cfg.calFactor);
-                  return (
-                    <div key={cfg.key} className={`p-3 rounded-xl border ${cfg.boxClass} space-y-2`}>
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-2.5 h-2.5 rounded-full ${cfg.dotClass} shrink-0`} />
-                          <span className="font-bold text-slate-900">{cfg.title}</span>
-                          <span className="text-[10px] text-slate-500 font-mono">~{macroG}g ({macroCal} kcal)</span>
+              {showCustomMacroSliders && (
+                <div className="space-y-2.5 pt-1 animate-in fade-in">
+                  {macroSliderConfigs.map(cfg => {
+                    const macroCal = Math.round((activeArchetypePreset.targetCalories * cfg.pct) / 100);
+                    const macroG = Math.round(macroCal / cfg.calFactor);
+                    return (
+                      <div key={cfg.key} className={`p-2.5 rounded-xl border ${cfg.boxClass} space-y-1.5`}>
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${cfg.dotClass} shrink-0`} />
+                            <span className="font-bold text-slate-900">{cfg.title}</span>
+                            <span className="text-[10px] text-slate-500 font-mono">~{macroG}g ({macroCal} kcal)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button type="button" onClick={() => handleMacroSliderChange(cfg.key, cfg.pct - 5)} disabled={cfg.pct <= cfg.min} className="w-5 h-5 rounded bg-white hover:bg-slate-200 disabled:opacity-40 border border-slate-200 text-slate-700 font-bold flex items-center justify-center cursor-pointer text-xs">-</button>
+                            <span className={`font-mono font-bold text-xs px-2 py-0.5 bg-white rounded border ${cfg.badgeClass} min-w-[42px] text-center`}>%{cfg.pct}</span>
+                            <button type="button" onClick={() => handleMacroSliderChange(cfg.key, cfg.pct + 5)} disabled={cfg.pct >= cfg.max} className="w-5 h-5 rounded bg-white hover:bg-slate-200 disabled:opacity-40 border border-slate-200 text-slate-700 font-bold flex items-center justify-center cursor-pointer text-xs">+</button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <button type="button" onClick={() => handleMacroSliderChange(cfg.key, cfg.pct - 5)} disabled={cfg.pct <= cfg.min} className="w-5 h-5 rounded bg-white hover:bg-slate-200 disabled:opacity-40 border border-slate-200 text-slate-700 font-bold flex items-center justify-center cursor-pointer text-xs">-</button>
-                          <span className={`font-mono font-bold text-xs px-2 py-0.5 bg-white rounded border ${cfg.badgeClass} min-w-[42px] text-center`}>%{cfg.pct}</span>
-                          <button type="button" onClick={() => handleMacroSliderChange(cfg.key, cfg.pct + 5)} disabled={cfg.pct >= cfg.max} className="w-5 h-5 rounded bg-white hover:bg-slate-200 disabled:opacity-40 border border-slate-200 text-slate-700 font-bold flex items-center justify-center cursor-pointer text-xs">+</button>
-                        </div>
+                        <input type="range" min={cfg.min} max={cfg.max} step="5" value={cfg.pct} onChange={e => handleMacroSliderChange(cfg.key, Number(e.target.value))} className={`w-full h-1.5 ${cfg.rangeClass} rounded-lg appearance-none cursor-pointer focus:outline-none`} />
                       </div>
-                      <input type="range" min={cfg.min} max={cfg.max} step="5" value={cfg.pct} onChange={e => handleMacroSliderChange(cfg.key, Number(e.target.value))} className={`w-full h-2 ${cfg.rangeClass} rounded-lg appearance-none cursor-pointer focus:outline-none`} />
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

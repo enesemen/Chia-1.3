@@ -152,3 +152,63 @@ export const ChiaAssistantBanner: React.FC<{
     {actionButton && <div className="shrink-0 self-start md:self-start flex items-center justify-end">{actionButton}</div>}
   </div>
 );
+
+export interface ConfirmModalProps {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  type?: 'danger' | 'warning' | 'info';
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+export const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  isOpen,
+  title,
+  message,
+  confirmText = 'Onayla',
+  cancelText = 'Vazgeç',
+  type = 'warning',
+  onConfirm,
+  onCancel
+}) => {
+  if (!isOpen) return null;
+
+  const isDanger = type === 'danger';
+  const iconBg = isDanger ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-800';
+  const confirmBtnBg = isDanger ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-amber-800 hover:bg-amber-900 text-white';
+
+  return (
+    <div className="fixed inset-0 z-[80] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden text-slate-900 animate-in zoom-in-95 p-6 text-center space-y-4">
+        <div className={`w-12 h-12 rounded-full ${iconBg} flex items-center justify-center mx-auto`}>
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-slate-900">{title}</h3>
+          <p className="text-xs text-slate-500 mt-2 leading-relaxed">{message}</p>
+        </div>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors cursor-pointer flex-1"
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`px-4 py-2 rounded-xl ${confirmBtnBg} text-xs font-semibold transition-colors cursor-pointer flex-1 shadow-2xs`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
