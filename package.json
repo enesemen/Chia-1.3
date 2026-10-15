@@ -1,8 +1,8 @@
 {
-  "name": "chia-1.2",
+  "name": "chia-1.3",
   "private": true,
-  "version": "1.2.0",
-  "description": "Chia 1.2 — Deterministik Klinik Menü, Türk Mutfağı Reçeteleri ve Besin Planlama Stüdyosu",
+  "version": "1.3.0",
+  "description": "Chia 1.3 — Deterministik Klinik Menü, Türk Mutfağı Reçeteleri ve Besin Planlama Stüdyosu",
   "type": "module",
   "scripts": {
     "dev": "vite",

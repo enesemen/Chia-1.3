@@ -1,4 +1,4 @@
-# 🌿 Chia 1.1 — Klinik Menü, Türk Mutfağı Reçeteleri ve Besin Planlama Stüdyosu
+# 🌿 Chia 1.3 — Klinik Menü, Türk Mutfağı Reçeteleri ve Besin Planlama Stüdyosu
 
 [![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -6,7 +6,7 @@
 [![Vite](https://img.shields.io/badge/Vite-6.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 
-**Chia 1.1**, diyetisyenler ve klinik beslenme uzmanları için geliştirilmiş; deterministik hesaplama motoruna, 59 zengin Türk mutfağı reçetesine, TürKomp 100g referanslı besin havuzuna ve 7 günlük kişiselleştirilmiş menü planlama mimarisine sahip modern bir beslenme stüdyosudur.
+**Chia 1.3**, diyetisyenler ve klinik beslenme uzmanları için geliştirilmiş; deterministik hesaplama motoruna, 59 zengin Türk mutfağı reçetesine, TürKomp 100g referanslı besin havuzuna ve 7 günlük kişiselleştirilmiş menü planlama mimarisine sahip modern bir beslenme stüdyosudur.
 
 ---
 
