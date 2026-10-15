@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@source "../index.html";
+@source "./**/*.{js,ts,jsx,tsx}";
+
+@theme {
+  --color-slate-50: #f8fafc; --color-slate-100: #f1f5f9; --color-slate-200: #e2e8f0; --color-slate-300: #cbd5e1; --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b; --color-slate-600: #475569; --color-slate-700: #334155; --color-slate-800: #1e293b; --color-slate-900: #0f172a; --color-slate-950: #020617;
+
+  --color-stone-50: #fafaf9; --color-stone-100: #f5f5f4; --color-stone-200: #e7e5e4; --color-stone-300: #d6d3d1; --color-stone-400: #a8a29e;
+  --color-stone-500: #78716c; --color-stone-600: #57534e; --color-stone-700: #44403c; --color-stone-800: #292524; --color-stone-900: #1c1917; --color-stone-950: #0c0a09;
+
+  --color-amber-50: #f2f6f0; --color-amber-100: #e3ece0; --color-amber-200: #c9d8c3; --color-amber-300: #a6c19e; --color-amber-400: #7ea475;
+  --color-amber-500: #58724f; --color-amber-600: #4b6343; --color-amber-700: #3f5338; --color-amber-800: #33432d; --color-amber-900: #273423; --color-amber-950: #182015;
+
+  --color-chia-50: #f8f6f0; --color-chia-100: #e3ece0; --color-chia-200: #c9d8c3; --color-chia-300: #a6c19e; --color-chia-400: #7ea475;
+  --color-chia-500: #58724f; --color-chia-600: #4b6343; --color-chia-700: #3f5338; --color-chia-800: #33432d; --color-chia-900: #273423;
+  --color-chia-cream: #f8f6f0; --color-chia-sand: #f0eee6; --color-chia-carrot: #e07a5f;
+}
+
+@media print {
+  html, body {
+    background: #ffffff !important; color: #000000 !important; font-size: 11pt !important;
+    margin: 0 !important; padding: 0 !important; height: auto !important; min-height: 100% !important; overflow: visible !important;
+  }
+  header, nav, aside, .no-print { display: none !important; }
+  #root, .min-h-screen, .flex-1, .overflow-hidden, .overflow-y-auto, main {
+    overflow: visible !important; height: auto !important; min-height: auto !important; max-height: none !important;
+    padding: 0 !important; margin: 0 !important; display: block !important; position: static !important;
+  }
+  .page-break-after { page-break-after: always !important; break-after: page !important; }
+  .avoid-page-break { page-break-inside: avoid !important; break-inside: avoid !important; }
+  @page { size: A4 portrait; margin: 10mm 12mm; }
+}

@@ -1,0 +1,197 @@
+export interface ExchangeFoodItem {
+  id: string;
+  name: string;
+  group: string;
+  subGroup: string;
+  portion: string;
+  amountNet: string;
+  stateNote: string;
+  equivalents: string;
+  clinicalNote: string;
+}
+
+const G_DAIRY = 'Süt & Yoğurt Grubu';
+const G_MEAT = 'Et, Peynir, Yumurta Grubu';
+const G_GRAIN = 'Ekmek, Tahıl, Kurubaklagil Grubu';
+const G_FRUIT = 'Meyve Grubu';
+const G_VEG = 'Sebze Grubu';
+const G_FAT = 'Yağ Grubu';
+const G_NUT = 'Yağlı Tohumlar & Kuruyemiş Grubu';
+
+type ExchangeTuple = [
+  id: string, name: string, group: string, subGroup: string,
+  portion: string, amountNet: string, stateNote: string, equivalents: string, clinicalNote: string
+];
+
+const RAW_EXCHANGE_TUPLES: ExchangeTuple[] = [
+  ['ex-1', 'Süt', G_DAIRY, 'Süt & Yoğurt', '1 su bardağı', '200 g', '200 g', '200g Ev Yoğurdu, 200g Kefir, 300g Ayran', 'Doğal kalsiyum ve fosfor kaynağı.'],
+  ['ex-2', 'Yoğurt', G_DAIRY, 'Süt & Yoğurt', '¾ su bardağı (4 tepeleme yemek kaşığı)', '150 g', '150 g', '200g Süt, 200g Ev Yoğurdu, 200g Kefir', 'Probiyotik ve sindirimi kolaylaştırıcı laktik asit bakterileri içerir.'],
+  ['ex-3', 'Ev Yoğurdu', G_DAIRY, 'Süt & Yoğurt', '1 su bardağı', '200 g', '200 g', '150g Süzme/Standart Yoğurt, 200g Kefir', 'Geleneksel fermantasyon, zengin biyoaktif peptitler.'],
+  ['ex-4', 'Ayran', G_DAIRY, 'Süt & Yoğurt', '1,5 su bardağı', '300 g', '300 g', '200g Süt, 150g Yoğurt', 'Elektrolit dengesini destekler, hidrasyon sağlar.'],
+  ['ex-5', 'Kefir', G_DAIRY, 'Süt & Yoğurt', '1 su bardağı', '200 g', '200 g', '200g Süt, 150g Yoğurt, 300g Ayran', 'Güçlü probiyotik çeşitliliği; bağırsak mikrobiyotası desteği.'],
+
+  ['ex-6', 'Kuşbaşı (Yağsız Dana)', G_MEAT, 'Kırmızı Et (Yağsız)', '3 orta boy', '20 g', '30g Çiğ / 20g Pişmiş', '30g Kıyma, 40g Köfte, 30g Tavuk Göğsü', 'Yüksek biyoyararlanımlı demir ve çinko.'],
+  ['ex-7', 'Kıyma (Yağsız Dana)', G_MEAT, 'Kırmızı Et (Yağsız)', '1 yemek kaşığı', '20 g', '30g Çiğ / 20g Pişmiş', '30g Kuşbaşı, 40g Köfte, 30g Hindi', 'Kolay porsiyonlanan yağsız protein kaynağı.'],
+  ['ex-8', 'Köfte', G_MEAT, 'Kırmızı Et (Yağsız)', '1 küçük yumurta boyutunda', '30 g', '40g Çiğ / 30g Pişmiş', '30g Biftek, 30g Kuşbaşı, 1 adet Yumurta', '1 adet ızgara köfte ~1 et değişimidir.'],
+  ['ex-9', 'Biftek (Yağsız)', G_MEAT, 'Kırmızı Et (Yağsız)', '1 avuç içi kadar', '20 g', '30g Çiğ / 20g Pişmiş', '30g Kuşbaşı, 30g Tavuk Fileto', 'Kreatin ve B12 vitamini kaynağı.'],
+  ['ex-10', 'Tavuk Göğüs Fileto', G_MEAT, 'Tavuk, Hindi (Derisiz)', '¼ küçük boy', '20 g', '30g Çiğ / 20g Pişmiş', '30g Hindi Eti, 30g Dana Kuşbaşı, 40g Levrek', 'Yağsız, yüksek biyolojik değerli protein.'],
+  ['ex-11', 'Tavuk Baget (Kemiksiz, Derisiz)', G_MEAT, 'Tavuk, Hindi (Derisiz)', '1 küçük boy', '20 g', '30g Çiğ / 20g Pişmiş', '30g Tavuk Göğsü, 30g Hindi Eti', 'Kollajen ve B vitaminleri içerir.'],
+  ['ex-12', 'Hindi Eti (Derisiz, Kemiksiz)', G_MEAT, 'Tavuk, Hindi (Derisiz)', '3 parmak boyutunda', '20 g', '30g Çiğ / 20g Pişmiş', '30g Tavuk Göğsü, 30g Biftek', 'Triptofan zengini, düşük doymuş yağlı beyaz et.'],
+  ['ex-13', 'Levrek', G_MEAT, 'Balıklar', '1/5 küçük boy', '30 g', '55g Brüt / 30g Net', '45g Alabalık, 40g Somon, 60g Çipura', 'Hafif ve sindirimi kolay beyaz etli deniz balığı.'],
+  ['ex-14', 'Alabalık', G_MEAT, 'Balıklar', '1/6 orta boy', '30 g', '45g Brüt / 30g Net', '55g Levrek, 40g Somon', 'Tatlı su balığı; fosfor ve B6 vitamini kaynağı.'],
+  ['ex-15', 'Çipura', G_MEAT, 'Balıklar', '¼ küçük boy', '30 g', '60g Brüt / 30g Net', '55g Levrek, 40g Somon', 'Selenyum ve kaliteli amino asit profili.'],
+  ['ex-16', 'Somon', G_MEAT, 'Balıklar', '2 parmak boyutunda', '30 g', '40g Brüt / 30g Net', '55g Levrek, 45g Hamsi, 60g İstavrit', 'EPA ve DHA Omega-3 yağ asitleri açısından çok zengin.'],
+  ['ex-17', 'İstavrit', G_MEAT, 'Balıklar', '4 küçük boy', '30 g', '60g Brüt / 30g Net', '45g Hamsi, 40g Lüfer', 'Mevsiminde kalsiyum ve omega-3 kaynağı.'],
+  ['ex-18', 'Mezgit', G_MEAT, 'Balıklar', '3 orta boy', '40 g', '100g Brüt / 40g Net', '55g Levrek, 60g Çipura', 'Yağ oranı çok düşük, yüksek proteinli beyaz balık.'],
+  ['ex-19', 'Lüfer', G_MEAT, 'Balıklar', '3 yarım parmak boyutunda', '30 g', '40g Brüt / 30g Net', '40g Somon, 55g Levrek', 'A ve D vitamini, omega-3 zengini.'],
+  ['ex-20', 'Sazan', G_MEAT, 'Balıklar', '2 parmak boyutunda', '40 g', '55g Brüt / 40g Net', '45g Alabalık, 55g Levrek', 'Geleneksel tatlı su balığı proteini.'],
+  ['ex-21', 'Hamsi', G_MEAT, 'Balıklar', '5 orta boy', '30 g', '45g Brüt / 30g Net', '60g İstavrit, 40g Somon', 'Küçük deniz balığı, kılçığıyla kalsiyum desteği.'],
+  ['ex-22', 'Yumurta (Tavuk)', G_MEAT, 'Yumurta', '1 küçük boy', '50 g', '55g Brüt / 50g Net', '5 adet Bıldırcın Yumurtası, 40g Beyaz Peynir, 50g Lor', 'Örnek protein (biyoyararlanımı %100), kolin zengini.'],
+  ['ex-23', 'Yumurta (Bıldırcın)', G_MEAT, 'Yumurta', '5 adet', '50 g', '75g Brüt / 50g Net', '1 adet Tavuk Yumurtası, 40g Peynir', 'Demir ve fosfor konsantrasyonu yüksek.'],
+  ['ex-24', 'Beyaz Peynir (İnek)', G_MEAT, 'Peynirler', '2 parmak boyutunda', '40 g', '40 g', '30g Kaşar, 50g Lor, 30g Ezine, 1 Yumurta', 'Klasik kahvaltı proteini ve kalsiyum kaynağı.'],
+  ['ex-25', 'Koyun Peyniri', G_MEAT, 'Peynirler', '3 yarım parmak boyutunda', '30 g', '30 g', '40g İnek Beyaz Peyniri, 30g Ezine', 'Yoğun aroma ve yüksek kalsiyum yoğunluğu.'],
+  ['ex-26', 'Keçi Peyniri', G_MEAT, 'Peynirler', '2 parmak boyutunda', '40 g', '40 g', '40g Beyaz Peynir, 30g Dil Peyniri', 'A2 kazein profili, sindirimi inek sütüne göre daha rahattır.'],
+  ['ex-27', 'Kaşar Peyniri (Taze/Eski)', G_MEAT, 'Peynirler', '3 yarım parmak boyutunda', '30 g', '30 g', '40g Beyaz Peynir, 30g Dil Peyniri, 30g Hellim', 'Kalsiyum konsantrasyonu yüksek, olgun peynir.'],
+  ['ex-28', 'Lor Peyniri', G_MEAT, 'Peynirler', '3 yemek kaşığı (tepeleme)', '50 g', '50 g', '40g Beyaz Peynir, 25g Çökelek, 1 Yumurta', 'Düşük yağ, yüksek whey proteini ve düşük sodyum.'],
+  ['ex-29', 'Çökelek', G_MEAT, 'Peynirler', '2 yemek kaşığı', '25 g', '25 g', '50g Lor Peyniri, 40g Beyaz Peynir', 'Geleneksel yağsız kazein proteini.'],
+  ['ex-30', 'Ezine Peyniri', G_MEAT, 'Peynirler', '3 yarım parmak boyutunda', '30 g', '30 g', '40g Beyaz Peynir, 30g Tulum', 'Yağlı salamura peynir; porsiyon kontrolü önemlidir.'],
+  ['ex-31', 'Tulum Peyniri', G_MEAT, 'Peynirler', '3 yarım parmak boyutunda', '30 g', '30 g', '30g Kaşar, 40g Beyaz Peynir', 'Fermantasyon süresi uzun, yoğun aromalıdır.'],
+  ['ex-32', 'Dil Peyniri', G_MEAT, 'Peynirler', '3 yarım parmak boyutunda', '30 g', '30 g', '30g Kaşar, 40g Süzme Peynir', 'Az tuzlu, lifli dokulu taze peynir.'],
+  ['ex-33', 'Süzme Peynir', G_MEAT, 'Peynirler', '2 parmak boyutunda', '40 g', '40 g', '40g Beyaz Peynir, 30g Dil Peyniri', 'Yumuşak dokulu, ılımlı tuzlu.'],
+  ['ex-34', 'Krem Peynir', G_MEAT, 'Peynirler', '1 yemek kaşığı (tepeleme)', '45 g', '45 g', '40g Süzme Peynir, 30g Kaşar', 'Sürülebilir peynir türevi.'],
+  ['ex-35', 'Hellim Peyniri', G_MEAT, 'Peynirler', '3 yarım parmak boyutunda', '30 g', '30 g', '30g Kaşar, 40g Beyaz Peynir', 'Izgaralık sert peynir, tuz içeriğine dikkat edilmelidir.'],
+  ['ex-36', 'Örgü Peyniri', G_MEAT, 'Peynirler', '3 yarım parmak boyutunda', '30 g', '30 g', '30g Çeçil, 30g Dil Peyniri', 'Yarı sert, tuzlu örgü peyniri.'],
+  ['ex-37', 'Çeçil Peyniri', G_MEAT, 'Peynirler', '3 yarım parmak boyutunda', '30 g', '30 g', '30g Dil Peyniri, 30g Kaşar', 'Tel tel ayrılan az yağlı geleneksel peynir.'],
+  ['ex-38', 'Cheddar Peyniri', G_MEAT, 'Peynirler', '3 yarım parmak boyutunda', '30 g', '30 g', '30g Kaşar, 20g Gravyer', 'Sarı olgun peynir.'],
+  ['ex-39', 'Gravyer Peyniri', G_MEAT, 'Peynirler', '2 yarım parmak boyutunda', '20 g', '20 g', '30g Kaşar, 30g Cheddar', 'Uzun olgunlaşmış sert İsviçre/Kars tipi peynir.'],
+
+  ['ex-40', 'Beyaz / Buğday Ekmeği', G_GRAIN, 'Ekmekler', '1 ince dilim', '25 g', '25 g', '30g Tam Buğday Ekmeği, 30g Lavaş, 20g Bulgur', 'Hızlı sindirilen rafine karbonhidrat.'],
+  ['ex-41', 'Mısır Ekmeği', G_GRAIN, 'Ekmekler', '1 ince dilim', '25 g', '25 g', '30g Tam Buğday Ekmeği, 25g Beyaz Ekmek', 'Glütensiz un alternatifi, geleneksel Karadeniz ekmeği.'],
+  ['ex-42', 'Çavdar / Yulaf / Tam Buğday / Kepekli Ekmek', G_GRAIN, 'Ekmekler', '1 ince dilim', '30 g', '30 g', '25g Beyaz Ekmek, 25g Yulaf Ezmesi, 20g Bulgur', 'Lif ve B grubu vitaminleri zengini, düşük glisemik indeks.'],
+  ['ex-43', 'Bazlama', G_GRAIN, 'Ekmekler', '1/5 orta boy', '30 g', '30 g', '1 dilim Ekmek, 30g Lavaş', 'Geleneksel mayalı köy ekmeği.'],
+  ['ex-44', 'Lavaş', G_GRAIN, 'Ekmekler', '1 küçük boy', '30 g', '30 g', '1 dilim Ekmek, 30g Bazlama', 'Dürüm ve hafif sandviç bazı.'],
+  ['ex-45', 'Hamburger Ekmeği (Küçük)', G_GRAIN, 'Ekmekler', '½ adet', '25 g', '25 g', '1 dilim Ekmek, 1/3 adet Sandviç Ekmeği', 'Yarım küçük hamburger ekmeği 1 ekmek değişimidir.'],
+  ['ex-46', 'Sandviç Ekmeği (Küçük)', G_GRAIN, 'Ekmekler', '1/3 adet', '25 g', '25 g', '1 dilim Ekmek, ½ Hamburger Ekmeği', '1/3 porsiyonu 1 değişim karbonhidrattır.'],
+  ['ex-47', 'Un (Buğday / Mısır)', G_GRAIN, 'Tahıllar', '3 yemek kaşığı (silme), çiğ', '20 g', '20 g', '20g İrmik, 25g Yulaf', 'Çorba ve sos bağlayıcı ölçüsü.'],
+  ['ex-48', 'Pirinç Pilavı', G_GRAIN, 'Tahıllar', '2 yemek kaşığı', '20 g', '20 g (Pişmiş)', '3 yk Bulgur Pilavı, 3 yk Makarna, 1 dilim Ekmek', 'Hızlı sindirilen karbonhidrat.'],
+  ['ex-49', 'Bulgur Pilavı', G_GRAIN, 'Tahıllar', '3 yemek kaşığı', '20 g', '20 g (Pişmiş)', '2 yk Pirinç Pilavı, 3 yk Makarna, 1 dilim Ekmek', 'Yüksek lif ve B1 vitamini içeriği.'],
+  ['ex-50', 'Makarna', G_GRAIN, 'Tahıllar', '3 yemek kaşığı', '20 g', '20 g (Pişmiş)', '3 yk Bulgur, 3 yk Erişte, 1 dilim Ekmek', 'Durum buğdayı irmiğinden üretilen kompleks karbonhidrat.'],
+  ['ex-51', 'Erişte', G_GRAIN, 'Tahıllar', '3 yemek kaşığı', '20 g', '20 g (Pişmiş)', '3 yk Makarna, 3 yk Bulgur Pilavı', 'Geleneksel ev yapımı hamur ürünü.'],
+  ['ex-52', 'Yarma (Aşurelik Buğday)', G_GRAIN, 'Tahıllar', '3 yemek kaşığı', '25 g', '25 g (Pişmiş)', '3 yk Bulgur, 25g Yulaf Ezmesi', 'Çorba ve yoğurtlu soğuk kaselerde yüksek lif kaynağı.'],
+  ['ex-53', 'Mercimek Çorbası', G_GRAIN, 'Çorbalar', '1 küçük kase', '25 g', '1 Kase (~200ml)', '1 Kase Tarhana / Şehriye, 1 dilim Ekmek', 'Bitkisel protein ve çözünür lif içeren başlangıç yemeği.'],
+  ['ex-54', 'Şehriye / Pirinç / Tarhana / Un Çorbası', G_GRAIN, 'Çorbalar', '1 küçük kase', '20 g', '1 Kase (~200ml)', '1 Kase Mercimek Çorbası, 1 dilim Ekmek', '1 kase çorba ~1 dilim ekmek yerine geçer.'],
+  ['ex-55', 'Nohut', G_GRAIN, 'Kurubaklagiller', '3 yemek kaşığı', '25 g', '25 g (Pişmiş/Süzülmüş)', '3 yk Kuru Fasulye, 3 yk Barbunya, 2 yk Mercimek', 'Rezistan nişasta, prebiyotik lif ve bitkisel protein.'],
+  ['ex-56', 'Kuru Fasulye', G_GRAIN, 'Kurubaklagiller', '3 yemek kaşığı', '25 g', '25 g (Pişmiş)', '3 yk Nohut, 3 yk Barbunya', 'Düşük glisemik indeks, tok tutucu.'],
+  ['ex-57', 'Barbunya', G_GRAIN, 'Kurubaklagiller', '3 yemek kaşığı', '25 g', '25 g (Pişmiş)', '3 yk Kuru Fasulye, 3 yk Nohut', 'Folat ve potasyum zengini.'],
+  ['ex-58', 'Mercimek (Yeşil / Kırmızı)', G_GRAIN, 'Kurubaklagiller', '2 yemek kaşığı', '25 g', '25 g (Pişmiş)', '3 yk Nohut, 3 yk Kuru Fasulye', 'Polifenol ve demir desteği sağlar.'],
+  ['ex-59', 'Kuru Bakla', G_GRAIN, 'Kurubaklagiller', '4 yemek kaşığı', '30 g', '30 g (Pişmiş)', '3 yk Kuru Fasulye, 3 yk Nohut', 'Fava yapımında kullanılan yüksek lifli baklagil.'],
+  ['ex-60', 'Kuru Börülce', G_GRAIN, 'Kurubaklagiller', '2 yemek kaşığı', '35 g', '35 g (Pişmiş)', '3 yk Kuru Fasulye, 2 yk Yeşil Mercimek', 'Salatalarda ve zeytinyağlılarda ideal değişim.'],
+  ['ex-61', 'Patates', G_GRAIN, 'Diğer Besinler', '1 küçük boy', '100 g', '100 g', '1 dilim Ekmek, 3 yk Bulgur', 'Haşlanıp soğutulduğunda dirençli nişasta oranı artar.'],
+  ['ex-62', 'Bezelye (İç)', G_GRAIN, 'Diğer Besinler', '4 yemek kaşığı (çiğ) / 3 yemek kaşığı (pişmiş)', '125 g', '125 g', '1 dilim Ekmek, 100g Patates', 'Nişastalı sebze kategorisinde 1 ekmek değişimi olarak sayılır.'],
+  ['ex-63', 'Kestane', G_GRAIN, 'Diğer Besinler', '4 orta boy', '40 g', '40 g', '1 dilim Ekmek, 25g Leblebi', 'Karbonhidrat içeren özel kabuklu besin.'],
+  ['ex-64', 'Koçan Mısır', G_GRAIN, 'Diğer Besinler', '1 küçük boy veya 4 yemek kaşığı tane', '90 g', '90 g', '1 dilim Ekmek, 3 su bardağı Patlamış Mısır', 'Taze koçan veya konserve haşlanmış mısır.'],
+  ['ex-65', 'Patlamış Mısır (Yağsız)', G_GRAIN, 'Diğer Besinler', '3 su bardağı', '25 g', '25 g', '1 dilim Ekmek, 25g Leblebi, 4 adet Diyet Bisküvi', 'Hacimli, hafif ve yüksek lifli ara öğün seçeneği.'],
+  ['ex-66', 'Leblebi (Sarı / Beyaz)', G_GRAIN, 'Diğer Besinler', '½ çay bardağı', '25 g', '25 g', '1 dilim Ekmek, 4 adet Tuzlu Bisküvi', 'Mide asidini dengeleyici kuru nohut türevi.'],
+  ['ex-67', 'Bisküvi (Tuzlu, Diyet)', G_GRAIN, 'Diğer Besinler', '4 adet', '25 g', '25 g', '1.5 adet Galeta, 1 dilim Ekmek', 'Taşınabilir pratik ara öğün.'],
+  ['ex-68', 'İrmik', G_GRAIN, 'Diğer Besinler', '2 yemek kaşığı', '20 g', '20 g', '3 yk Un, 2 yk Yulaf Ezmesi', 'Tatlı veya lapalarda kullanılan buğday irmiği.'],
+  ['ex-69', 'Tahıl / Mısır Gevreği (Sade)', G_GRAIN, 'Diğer Besinler', '3 yemek kaşığı', '20 g', '20 g', '2 yk Yulaf Ezmesi, 1 dilim Ekmek', 'Şekersiz gevrek alternatifi.'],
+  ['ex-70', 'Yulaf Ezmesi', G_GRAIN, 'Diğer Besinler', '2 yemek kaşığı', '25 g', '25 g', '1 dilim Tam Buğday Ekmeği, 3 yk Bulgur', 'Beta-glukan çözünür lifi içerir, kolesterol dengesini destekler.'],
+  ['ex-71', 'Böreklik Yufka', G_GRAIN, 'Diğer Besinler', '1/6 adet', '25 g', '25 g', '1 dilim Ekmek, 1 küçük Lavaş', 'Fırın yemeklerinde porsiyon kontrolü için referans.'],
+  ['ex-72', 'Galeta', G_GRAIN, 'Diğer Besinler', '1,5 büyük boy', '20 g', '20 g', '1 dilim Ekmek, 4 adet Diyet Bisküvi', 'Çıtır fırınlanmış ekmek değişimi.'],
+
+  ['ex-73', 'Ahududu', G_FRUIT, 'Taze Meyveler', '35 orta boy', '200 g', '200-200 g', '305g Çilek, 175g Yaban Mersini', 'Antosiyanin ve yüksek lif; düşük glisemik yük.'],
+  ['ex-74', 'Ananas', G_FRUIT, 'Taze Meyveler', '2 parmak kalınlığında 1 dilim', '160 g', '300-160 g', '1 orta boy Elma, 1 küçük boy Kivi', 'Bromelain enzimi içerir, sindirim ve ödem atılımını destekler.'],
+  ['ex-75', 'Armut', G_FRUIT, 'Taze Meyveler', '1 küçük boy', '125 g', '140-125 g', '1 orta boy Elma, 1 orta boy Şeftali', 'Kabuğuyla tüketildiğinde pektin ve çözünür lif zenginidir.'],
+  ['ex-76', 'Ayva', G_FRUIT, 'Taze Meyveler', '½ büyük boy', '110 g', '140-110 g', '1 orta boy Elma, 1 küçük boy Armut', 'Mide dostu tanenler ve pektin kaynağı.'],
+  ['ex-77', 'Babutsa (Kaktüs Meyvesi)', G_FRUIT, 'Taze Meyveler', '2 orta boy', '160 g', '250-160 g', '1 orta boy Portakal, 2 küçük Kivi', 'Doğal antioksidan ve C vitamini deposu.'],
+  ['ex-78', 'Böğürtlen', G_FRUIT, 'Taze Meyveler', '35 orta boy', '210 g', '210-210 g', '200g Ahududu, 175g Yaban Mersini', 'Hücre koruyucu flavonoidler ve C vitamini.'],
+  ['ex-79', 'Çilek', G_FRUIT, 'Taze Meyveler', '18 orta boy', '300 g', '305-300 g', '200g Ahududu, 1 orta boy Elma', 'Hacimce zengin, düşük kalorili C vitamini kaynağı.'],
+  ['ex-80', 'Dut', G_FRUIT, 'Taze Meyveler', '¾ su bardağı', '115 g', '115-115 g', '25 adet Üzüm, 1 orta boy Elma', 'Resveratrol ve demir içerir.'],
+  ['ex-81', 'Elma', G_FRUIT, 'Taze Meyveler', '1 orta boy', '120 g', '130-120 g', '1 küçük boy Armut, 2 orta boy Mandalina', 'Klasik ara öğün meyvesi, kuersetin ve pektin kaynağı.'],
+  ['ex-82', 'Erik (Mürdüm)', G_FRUIT, 'Taze Meyveler', '3 orta boy', '110 g', '115-110 g', '7 orta boy Yeşil Erik, 3 orta boy Kuru Erik', 'Bağırsak hareketlerini destekler.'],
+  ['ex-83', 'Erik (Yeşil)', G_FRUIT, 'Taze Meyveler', '7 orta boy', '130 g', '140-130 g', '3 orta boy Mürdüm Erik, 1 orta boy Elma', 'Canlandırıcı sitrik asit ve C vitamini.'],
+  ['ex-84', 'Greyfurt', G_FRUIT, 'Taze Meyveler', '1 orta boy', '175 g', '230-175 g', '1 orta boy Portakal, 2 orta boy Mandalina', 'İlaç etkileşimlerine dikkat edilmelidir (CYP3A4).'],
+  ['ex-85', 'İncir', G_FRUIT, 'Taze Meyveler', '2 küçük boy', '110 g', '120-110 g', '2 küçük Kuru İncir, 1 orta boy Elma', 'Doğal prebiyotik lif ve kalsiyum kaynağı.'],
+  ['ex-86', 'Karayemiş (Taflan)', G_FRUIT, 'Taze Meyveler', '23 orta boy', '100 g', '110-100 g', '11 büyük boy Kiraz, 35 adet Vişne', 'Geleneksel Karadeniz meyvesi, zengin antioksidan.'],
+  ['ex-87', 'Karpuz', G_FRUIT, 'Taze Meyveler', '1/8 orta boyun yarısı (1 kalın üçgen dilim)', '220 g', '330-220 g', '1/8 küçük boy Kavun, 305g Çilek', 'Likopen ve sitrülin içerir; yaz hidrasyonu sağlar.'],
+  ['ex-88', 'Kavun', G_FRUIT, 'Taze Meyveler', '1/8 küçük boy', '170 g', '315-170 g', '1 dilim Karpuz, 1 orta boy Şeftali', 'Beta-karoten ve potasyum desteği.'],
+  ['ex-89', 'Kayısı', G_FRUIT, 'Taze Meyveler', '7 orta boy', '175 g', '190-175 g', '4 küçük boy Kuru Kayısı, 1 orta boy Şeftali', 'A vitamini öncüsü beta-karoten ve potasyum.'],
+  ['ex-90', 'Kiraz', G_FRUIT, 'Taze Meyveler', '11 büyük boy', '110 g', '120-110 g', '35 adet Vişne, 25 adet Üzüm', 'Antosiyanin ve melatonin öncülleri.'],
+  ['ex-91', 'Kivi', G_FRUIT, 'Taze Meyveler', '2 küçük boy', '110 g', '125-110 g', '1 orta boy Portakal, 305g Çilek', 'Aktinidin enzimi ve yüksek C vitamini; bağırsak motilitesini destekler.'],
+  ['ex-92', 'Kızılcık', G_FRUIT, 'Taze Meyveler', '1 su bardağı', '100 g', '200-100 g', '1 su bardağı Yaban Mersini, 35 adet Vişne', 'Proantosiyanidinler; idrar yolları sağlığına destek.'],
+  ['ex-93', 'Limon', G_FRUIT, 'Taze Meyveler', '2 büyük boy', '200 g', '250-200 g', '1 orta boy Greyfurt, 1 orta boy Portakal', 'Sitrik asit ve C vitamini.'],
+  ['ex-94', 'Mandalina', G_FRUIT, 'Taze Meyveler', '2 orta boy', '140 g', '175-140 g', '1 orta boy Portakal, 1 orta boy Elma', 'Kış aylarında pratik C vitamini ara öğünü.'],
+  ['ex-95', 'Mango', G_FRUIT, 'Taze Meyveler', '1/3 büyük boy', '120 g', '145-120 g', '1 dilim Ananas, 1 orta boy Şeftali', 'Tropikal meyve; beta-karoten ve enzim kaynağı.'],
+  ['ex-96', 'Muz', G_FRUIT, 'Taze Meyveler', '1 küçük boy', '85 g', '140-85 g', '1 orta boy Elma, 3 orta boy Kuru Hurma', 'Potasyum ve B6 zengini, spor öncesi ideal enerji.'],
+  ['ex-97', 'Nar', G_FRUIT, 'Taze Meyveler', '1 orta boy (veya ½ kase tane)', '160 g', '250-160 g', '1 orta boy Portakal, 1 orta boy Elma', 'Punikalagin ve ellagik asit; güçlü vasküler antioksidan.'],
+  ['ex-98', 'Portakal', G_FRUIT, 'Taze Meyveler', '1 orta boy', '140 g', '180-140 g', '2 orta boy Mandalina, 1 orta boy Greyfurt', 'Lifleriyle birlikte taze tüketilmesi önerilir.'],
+  ['ex-99', 'Şeftali', G_FRUIT, 'Taze Meyveler', '1 orta boy', '185 g', '220-185 g', '1 orta boy Armut, 7 orta boy Kayısı', 'Yaz mevsiminde sindirimi kolay taze lif kaynağı.'],
+  ['ex-100', 'Üzüm', G_FRUIT, 'Taze Meyveler', '25 adet', '100 g', '100-100 g', '11 büyük boy Kiraz, 1 yemek kaşığı Kuru Üzüm', 'Resveratrol ve doğal glukoz dengesi.'],
+  ['ex-101', 'Vişne', G_FRUIT, 'Taze Meyveler', '35 adet', '125 g', '150-125 g', '11 büyük boy Kiraz, 1 su bardağı Yaban Mersini', 'Kas toparlanması ve uyku ritmine destek veren ekşi antioksidan.'],
+  ['ex-102', 'Trabzon Hurması (Cennet Hurması)', G_FRUIT, 'Taze Meyveler', '1 küçük boy', '100 g', '120-100 g', '1 orta boy Şeftali, 1 orta boy Elma', 'A vitamini ve lif zengini sonbahar meyvesi.'],
+  ['ex-103', 'Yaban Mersini', G_FRUIT, 'Taze Meyveler', '1,5 su bardağı', '175 g', '175-175 g', '200g Ahududu, 305g Çilek', 'Beyin sağlığı ve göz yorgunluğunu destekleyen süper meyve.'],
+  ['ex-104', 'Yeni Dünya (Malta Eriği)', G_FRUIT, 'Taze Meyveler', '7 orta boy', '120 g', '160-120 g', '7 orta boy Kayısı, 1 orta boy Elma', 'Bahar aylarında taze pektin ve A vitamini kaynağı.'],
+  ['ex-105', 'Kuru Erik', G_FRUIT, 'Kuru Meyveler', '3 orta boy', '25 g', '25-25 g', '4 küçük boy Kuru Kayısı, 2 küçük boy Kuru İncir', 'Sorbitol ve lif içerir; kabızlık protokollerinde altın standart.'],
+  ['ex-106', 'Kuru İncir', G_FRUIT, 'Kuru Meyveler', '2 küçük boy', '25 g', '25-25 g', '3 orta boy Kuru Erik, 3 orta boy Kuru Hurma', 'Konsantre kalsiyum, magnezyum ve çekirdek lifleri.'],
+  ['ex-107', 'Kuru Kayısı (Gün Kurusu)', G_FRUIT, 'Kuru Meyveler', '4 küçük boy', '25 g', '25-25 g', '3 orta boy Kuru Erik, 1 yemek kaşığı Kuru Üzüm', 'Potasyum ve bağırsak düzenleyici doğal tatlı kaynağı.'],
+  ['ex-108', 'Kuru Üzüm', G_FRUIT, 'Kuru Meyveler', '1 yemek kaşığı (tepeleme)', '20 g', '20-20 g', '2 yemek kaşığı Kuru Dut, 4 küçük boy Kuru Kayısı', 'Doğal demir ve hızlı enerji kaynağı.'],
+  ['ex-109', 'Kuru Hurma (Medine / Kudüs)', G_FRUIT, 'Kuru Meyveler', '3 orta boy (veya 1 büyük boy Kudüs)', '25 g', '25-25 g', '2 küçük boy Kuru İncir, 4 adet Kuru Kayısı', 'Magnezyum, potasyum ve doğal şeker dengesi.'],
+  ['ex-110', 'Kuru Dut', G_FRUIT, 'Kuru Meyveler', '2 yemek kaşığı (tepeleme)', '20 g', '20-20 g', '1 yemek kaşığı Kuru Üzüm, 4 adet Kuru Kayısı', 'Demir ve C vitamini içeren geleneksel kuru meyve.'],
+
+  ['ex-111', 'Kırmızı Turp', G_VEG, 'Çiğ Sebzeler', '1 orta boy (çiğ)', '150 g', '170-150 g', '2 orta boy Salatalık, 1 büyük boy Domates', 'Glukozinolat ve C vitamini kaynağı.'],
+  ['ex-112', 'Siyah Turp', G_VEG, 'Çiğ Sebzeler', '1 büyük boy (çiğ)', '100 g', '115-100 g', '1 orta boy Kırmızı Turp, 2 küçük boy Havuç', 'Karaciğer ve safra fonksiyonlarını destekleyen kükürtlü bileşikler.'],
+  ['ex-113', 'Salatalık / Acur', G_VEG, 'Çiğ Sebzeler', '2 orta boy (çiğ)', '200 g', '250-200 g', '1 büyük boy Domates, 8 büyük boy Sivri Biber', '%96 su oranıyla yüksek hidrasyon, serbest tüketilebilir.'],
+  ['ex-114', 'Domates', G_VEG, 'Çiğ / Pişmiş Sebzeler', '1 büyük boy (çiğ)', '200 g', '230-200 g', '2 orta boy Salatalık, 3 büyük boy Dolmalık Biber', 'Likopen zengini; zeytinyağıyla pişirildiğinde emilimi artar.'],
+  ['ex-115', 'Kuru Soğan', G_VEG, 'Çiğ / Pişmiş Sebzeler', '½ orta boy (çiğ)', '75 g', '85-75 g', '6 orta boy Yeşil Soğan, 1 orta boy Pırasa', 'Kuersetin ve prebiyotik inülin lifi.'],
+  ['ex-116', 'Yeşil Soğan', G_VEG, 'Çiğ Sebzeler', '6 orta boy (çiğ)', '125 g', '140-125 g', '½ orta boy Kuru Soğan, 2 orta boy Salatalık', 'K vitamini ve taze klorofil.'],
+  ['ex-117', 'Yeşil Sivri Biber', G_VEG, 'Çiğ Sebzeler', '8 büyük boy (çiğ)', '125 g', '145-125 g', '3 büyük boy Dolmalık Biber, 5 büyük Çarliston', 'Termojenik kapsaisin ve yüksek C vitamini.'],
+  ['ex-118', 'Dolmalık Biber', G_VEG, 'Çiğ / Pişmiş Sebzeler', '3 büyük boy (çiğ)', '150 g', '165-150 g', '8 büyük boy Sivri Biber, 5 büyük Çarliston', 'Çıtır salatalık veya fırın yemekleri bazı.'],
+  ['ex-119', 'Çarliston Biber', G_VEG, 'Çiğ / Pişmiş Sebzeler', '5 büyük boy (çiğ)', '175 g', '190-175 g', '8 büyük boy Sivri Biber, 3 Dolmalık Biber', 'Hafif tatlı, sulu biber cinsi.'],
+  ['ex-120', 'Asma Yaprağı', G_VEG, 'Pişmiş Sebzeler', '8 büyük boy (çiğ)', '35 g', '35-35 g', '2 yaprak Kara Lahana, 13 yaprak Pazı', 'Kalsiyum ve polifenol deposu, sarmalarda tuzuna dikkat edilmeli.'],
+  ['ex-121', 'Kara Lahana', G_VEG, 'Pişmiş Sebzeler', '2 orta boy yaprak / 5-6 yemek kaşığı pişmiş', '60 g', '60-60 g', '3 su bardağı Beyaz Lahana, 1 orta bağ Ispanak', 'Kalsiyum ve sülforafan zengini koyu yeşil yaprak.'],
+  ['ex-122', 'Beyaz Lahana', G_VEG, 'Çiğ / Pişmiş Sebzeler', '3 su bardağı doğranmış / 5-6 yemek kaşığı pişmiş', '150 g', '150-150 g', '1 su bardağı Kırmızı Lahana, 5 adet Brüksel Lahanası', 'Glutamin ve kükürtlü bileşikler; mide mukozasını korur.'],
+  ['ex-123', 'Kırmızı Lahana', G_VEG, 'Çiğ Sebzeler', '1 su bardağı doğranmış / 5-6 yemek kaşığı pişmiş', '80 g', '80-80 g', '3 su bardağı Beyaz Lahana, 1 büyük boy Kırmızı Turp', 'Antosiyanin ve C vitamini deposu salata sebzesi.'],
+  ['ex-124', 'Brüksel Lahanası', G_VEG, 'Pişmiş Sebzeler', '5 büyük boy / 5-6 yemek kaşığı pişmiş', '125 g', '125-125 g', '7 çiçek Brokoli, 3 çiçek Karnabahar', 'İndol-3-karbinol ve detoksifiye edici glukozinolatlar.'],
+  ['ex-125', 'Pırasa', G_VEG, 'Pişmiş Sebzeler', '1 orta boy / 5-6 yemek kaşığı pişmiş', '100 g', '120-100 g', '1 büyük boy Kabak, 1 büyük boy Patlıcan', 'İnülin prebiyotik lifi ve allisin türevleri.'],
+  ['ex-126', 'Taze Kabak', G_VEG, 'Pişmiş Sebzeler', '1 büyük boy / 5-6 yemek kaşığı pişmiş', '250 g', '265-250 g', '1 büyük boy Patlıcan, 1 orta boy Pırasa, 6 orta boy Taze Fasulye', 'Düşük kalorili, sindirimi çok hafif nötr sebze.'],
+  ['ex-127', 'Bal Kabağı (Kabuksuz)', G_VEG, 'Pişmiş Sebzeler', '1 orta boy kare dilim / 5-6 yemek kaşığı pişmiş', '75 g', '75-75 g', '2 küçük boy Havuç, 1 büyük boy Kabak', 'Beta-karoten ve potasyum kaynağı.'],
+  ['ex-128', 'Kereviz', G_VEG, 'Pişmiş / Çiğ Sebzeler', '½ orta boy / 5-6 yemek kaşığı pişmiş', '100 g', '170-100 g', '2 büyük boy Enginar, 2 orta boy Yer Elması', 'Ftalit bileşikleri, tansiyon ve ödem dengeleyici.'],
+  ['ex-129', 'Havuç', G_VEG, 'Çiğ / Pişmiş Sebzeler', '2 küçük boy / 5-6 yemek kaşığı pişmiş', '100 g', '135-100 g', '1 kare dilim Bal Kabağı, ¾ küçük boy Pancar', 'A vitamini öncülü, göz ve cilt sağlığı desteği.'],
+  ['ex-130', 'Pancar (Kırmızı)', G_VEG, 'Pişmiş / Çiğ Sebzeler', '¾ küçük boy / 5-6 yemek kaşığı pişmiş', '75 g', '90-75 g', '2 küçük boy Havuç, ½ orta boy Kereviz', 'Doğal diyet nitratları; endotel ve damar fonksiyonu desteği.'],
+  ['ex-131', 'Şalgam', G_VEG, 'Çiğ / Pişmiş Sebzeler', '1 büyük boy / 5-6 yemek kaşığı pişmiş', '150 g', '170-150 g', '1 büyük boy Siyah Turp, ½ orta boy Kereviz', 'Kök sebze, lif ve C vitamini.'],
+  ['ex-132', 'Patlıcan', G_VEG, 'Pişmiş Sebzeler', '1 büyük boy / 5-6 yemek kaşığı pişmiş', '200 g', '250-200 g', '1 büyük boy Kabak, 30 büyük boy Bamya, 6 orta boy Taze Fasulye', 'Nasunin antioksidanı (mor kabuk) ve düşük kalori.'],
+  ['ex-133', 'Taze Fasulye', G_VEG, 'Pişmiş Sebzeler', '6 orta boy / 5-6 yemek kaşığı pişmiş', '85 g', '85-85 g', '8 orta boy Taze Börülce, 30 büyük boy Bamya, 1 büyük Kabak', 'Yaz klasiği; çözünür ve çözünmez lif dengesi.'],
+  ['ex-134', 'Bamya', G_VEG, 'Pişmiş Sebzeler', '30 büyük boy / 5-6 yemek kaşığı pişmiş', '80 g', '95-80 g', '6 orta boy Taze Fasulye, 1 büyük boy Kabak', 'Müsilaj lifleri sindirim kanalını korur ve kolesterolü bağlar.'],
+  ['ex-135', 'Karnabahar', G_VEG, 'Pişmiş Sebzeler', '3 orta boy çiçek / 5-6 yemek kaşığı pişmiş', '150 g', '150-150 g', '7 çiçek Brokoli, 5 büyük boy Brüksel Lahanası', 'Kolin ve C vitamini zengini kış sebzesi.'],
+  ['ex-136', 'Pazı', G_VEG, 'Pişmiş Sebzeler', '13 orta boy yaprak / 5-6 yemek kaşığı pişmiş', '200 g', '200-200 g', '1 orta bağ Ispanak, 1 küçük bağ Semizotu', 'Magnezyum, K vitamini ve lütein.'],
+  ['ex-137', 'Ebegümeci', G_VEG, 'Pişmiş Sebzeler', '5 su bardağı doğranmış / 5-6 yemek kaşığı pişmiş', '100 g', '100-100 g', '1 orta bağ Ispanak, 13 yaprak Pazı', 'Geleneksel yabani ege otu, müsilaj zengini.'],
+  ['ex-138', 'Mantar (Kültür / İstiridye)', G_VEG, 'Pişmiş Sebzeler', '8 orta boy / 5-6 yemek kaşığı pişmiş', '225 g', '225-225 g', '1 büyük boy Kabak, 1 büyük boy Patlıcan', 'Beta-glukan, D vitamini öncülü ve selenyum.'],
+  ['ex-139', 'Yer Elması', G_VEG, 'Pişmiş Sebzeler', '2 orta boy / 5-6 yemek kaşığı pişmiş', '150 g', '190-150 g', '2 büyük boy Enginar, ½ orta boy Kereviz', 'En zengin inülin prebiyotik kaynaklarından biridir.'],
+  ['ex-140', 'Taze Börülce', G_VEG, 'Pişmiş Sebzeler', '8 orta boy / 5-6 yemek kaşığı pişmiş', '100 g', '100-100 g', '6 orta boy Taze Fasulye, 16 büyük Taze Bakla', 'Zeytinyağlı ve salatalarda hafif ege lezzeti.'],
+  ['ex-141', 'Brokoli', G_VEG, 'Pişmiş Sebzeler', '7 karışık boy çiçek / 5-6 yemek kaşığı pişmiş', '125 g', '125-125 g', '3 çiçek Karnabahar, 5 büyük boy Brüksel Lahanası', 'Sülforafan, C vitamini ve K vitamini altın standardı.'],
+  ['ex-142', 'Taze Bakla', G_VEG, 'Pişmiş Sebzeler', '16 büyük boy / 5-6 yemek kaşığı pişmiş', '150 g', '160-150 g', '6 orta boy Taze Fasulye, 2 büyük boy Enginar', 'Dereotu ve zeytinyağı ile bahar sebzesi.'],
+  ['ex-143', 'Enginar (Çanak)', G_VEG, 'Pişmiş Sebzeler', '2 büyük boy / 5-6 yemek kaşığı pişmiş', '225 g', '225-225 g', '½ orta boy Kereviz, 2 orta boy Yer Elması', 'Sinarin maddesiyle karaciğer ve safra rejenerasyonunu destekler.'],
+  ['ex-144', 'Semizotu', G_VEG, 'Çiğ / Pişmiş Sebzeler', '1 küçük bağ / 5-6 yemek kaşığı pişmiş', '300 g', '340-300 g', '1 orta bağ Ispanak, 13 yaprak Pazı', 'Bitkisel ALA Omega-3 yağ asitleri içeren nadir yeşillik.'],
+  ['ex-145', 'Ispanak', G_VEG, 'Pişmiş Sebzeler', '1 orta bağ / 5-6 yemek kaşığı pişmiş', '200 g', '225-200 g', '13 yaprak Pazı, 1 küçük bağ Semizotu', 'Folat, demir ve lutein zengini.'],
+  ['ex-146', 'Kuru Biber', G_VEG, 'Kuru Sebzeler', '5 orta boy / 5-6 yemek kaşığı pişmiş', '15 g', '15-15 g', '6 orta boy Kuru Patlıcan, 3 yk Kuru Bamya', 'Güneşte kurutulmuş konsantre lezzet verici.'],
+  ['ex-147', 'Kuru Patlıcan', G_VEG, 'Kuru Sebzeler', '6 orta boy / 5-6 yemek kaşığı pişmiş', '20 g', '20-20 g', '5 orta boy Kuru Biber, 3 yk Kuru Bamya', 'Geleneksel kuru dolmalık sebze bazı.'],
+  ['ex-148', 'Kuru Bamya', G_VEG, 'Kuru Sebzeler', '3 yemek kaşığı (çiğ) / 5-6 yemek kaşığı pişmiş', '25 g', '25-25 g', '5 orta boy Kuru Biber, 6 orta boy Kuru Patlıcan', 'Çorbalık çiçek kuru bamya.'],
+
+  ['ex-149', 'Sıvı Yağ (Zeytinyağı, Soya, Ayçiçek, Mısır, Kanola, Fındık Yağı)', G_FAT, 'Sıvı Yağlar', '1 tatlı kaşığı', '5 g', '5-5 g', '10 orta boy Zeytin, ¼ küçük boy Avokado', 'Özellikle soğuk sıkım sızma zeytinyağı antiinflamatuar oleokantal içerir.'],
+  ['ex-150', 'Siyah / Yeşil Zeytin', G_FAT, 'Zeytin & Avokado', '10 orta boy', '35 g', '40-35 g', '1 tatlı kaşığı Zeytinyağı, ¼ küçük boy Avokado', 'Tekli doymamış yağ asitleri ve polifenoller; tansiyon durumunda tuzu yıkanabilir.'],
+  ['ex-151', 'Avokado', G_FAT, 'Zeytin & Avokado', '¼ küçük boy', '40 g', '55-40 g', '1 tatlı kaşığı Zeytinyağı, 10 orta boy Zeytin, 2 bütün Ceviz', 'Yüksek oleik asit, potasyum ve E vitamini kaynağı.'],
+  ['ex-152', 'Ceviz', G_NUT, 'Sert Kabuklu Yemişler', '2 bütün orta boy', '10 g', '20-10 g', '10 orta boy Badem, 8 orta boy Fındık, 15 adet Antep Fıstığı', 'Bitkisel Omega-3 (ALA) ve beyin sağlığını destekleyen polifenoller.'],
+  ['ex-153', 'Badem', G_NUT, 'Sert Kabuklu Yemişler', '10 orta boy', '10 g', '20-10 g', '2 bütün Ceviz, 8 orta boy Fındık, 7 orta boy Kaju', 'E vitamini, magnezyum ve kalsiyum desteği.'],
+  ['ex-154', 'Fındık', G_NUT, 'Sert Kabuklu Yemişler', '8 orta boy', '10 g', '20-10 g', '2 bütün Ceviz, 10 orta boy Badem', 'Tekli doymamış yağ asitleri ve folat.'],
+  ['ex-155', 'Antep Fıstığı', G_NUT, 'Sert Kabuklu Yemişler', '15 orta boy', '10 g', '20-10 g', '10 orta boy Badem, 8 orta boy Fındık', 'Lutein ve zeaksantin antioksidanları içerir.'],
+  ['ex-156', 'Kaju Fıstığı', G_NUT, 'Sert Kabuklu Yemişler', '7 orta boy', '10 g', '10-10 g', '10 orta boy Badem, 2 bütün Ceviz', 'Çinko, magnezyum ve demir kaynağı.'],
+  ['ex-157', 'Yer Fıstığı', G_NUT, 'Sert Kabuklu Yemişler', '13 orta boy', '10 g', '10-10 g', '10 orta boy Badem, 8 orta boy Fındık', 'Resveratrol ve niasin (B3) vitamini.'],
+  ['ex-158', 'Ay Çekirdeği', G_NUT, 'Tohumlar', '3 yemek kaşığı', '10 g', '20-10 g', '2 yemek kaşığı Kabak Çekirdeği, 10 orta boy Badem', 'E vitamini ve selenyum zengini yağlı tohum.'],
+  ['ex-159', 'Kabak Çekirdeği', G_NUT, 'Tohumlar', '2 yemek kaşığı', '10 g', '15-10 g', '3 yemek kaşığı Ay Çekirdeği, 2 bütün Ceviz', 'Çinko ve magnezyum zengini; prostat ve bağışıklık desteği.']
+];
+
+export const INITIAL_EXCHANGE_FOODS: ExchangeFoodItem[] = RAW_EXCHANGE_TUPLES.map(([
+  id, name, group, subGroup, portion, amountNet, stateNote, equivalents, clinicalNote
+]) => ({
+  id, name, group, subGroup, portion, amountNet, stateNote, equivalents, clinicalNote
+}));

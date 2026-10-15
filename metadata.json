@@ -1,0 +1,6 @@
+{
+  "name": "NutriPlan - Diyetisyen Menü ve Tarif Sistemi",
+  "description": "Diyetisyenler için deterministik besin ve değişim hesaplamalı, modüler tarif ve kişiye özel menü planlama yazılımı.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
