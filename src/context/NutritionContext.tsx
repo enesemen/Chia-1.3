@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, useDeferredValue } from 'react';
 import { Recipe, FoodItem, ClientProfile, RecipeIngredient, RecipeBooklet } from '../types/nutrition';
 import { INITIAL_RECIPES } from '../data/mockRecipes';
 import { INITIAL_FOODS } from '../data/mockFoods';
 import { INITIAL_CLIENTS } from '../data/mockArchetypes';
 import { INITIAL_BOOKLETS } from '../data/mockBooklets';
 import { turKompMockService, TurKompDatabaseService, TurKompDatabaseStats, IngredientCalculationResult } from '../services/turKompDatabaseService';
+import { trLower } from '../services/recipePersonalizationEngine';
 
 export type ActiveModule = 'recipes' | 'foods' | 'exchanges' | 'templates';
 
@@ -42,7 +43,7 @@ const RECIPES_STORAGE_KEY = 'nutriplan_recipes_v3';
 const FOODS_STORAGE_KEY = 'nutriplan_foods_v2';
 const BOOKLETS_STORAGE_KEY = 'nutriplan_booklets_v1';
 
-function loadStoredArray<T>(key: string, fallback: T[]): T[] {
+export function loadStoredArray<T>(key: string, fallback: T[]): T[] {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return fallback;
@@ -61,8 +62,13 @@ function mergeWithSeed<T extends { id: string }>(key: string, seeds: T[]): T[] {
   return merged;
 }
 
-function useDebouncedStorage<T>(key: string, value: T, delay = 300) {
+export function useDebouncedStorage<T>(key: string, value: T, delay = 300) {
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
     }, delay);
@@ -143,18 +149,20 @@ export const NutritionProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setFoods(prev => [formatted, ...prev.filter(f => f.id !== formatted.id)]);
   }, []);
 
+  const deferredSearch = useDeferredValue(filters.search);
+
   const filteredRecipes = useMemo(() => {
-    const q = filters.search.toLowerCase().trim();
-    const filterDietLower = filters.dietType.toLowerCase();
-    const filterMealLower = filters.mealType.toLowerCase();
+    const q = trLower(deferredSearch).trim();
+    const filterDietLower = trLower(filters.dietType);
+    const filterMealLower = trLower(filters.mealType);
 
     return recipes.filter(r => {
       if (q) {
-        const match = r.dietaryFlags?.allText ? r.dietaryFlags.allText.includes(q) : r.name.toLowerCase().includes(q);
+        const match = r.dietaryFlags?.allText ? r.dietaryFlags.allText.includes(q) : trLower(r.name).includes(q);
         if (!match) return false;
       }
-      if (filters.dietType !== 'Tümü' && !(r.dietTypes?.some(dt => dt.toLowerCase() === filterDietLower) || r.dietType === filters.dietType)) return false;
-      if (filters.mealType !== 'Tümü' && !(r.mealTypes?.some(mt => mt.toLowerCase() === filterMealLower) || r.mealType === filters.mealType)) return false;
+      if (filters.dietType !== 'Tümü' && !(r.dietTypes?.some(dt => trLower(dt) === filterDietLower) || r.dietType === filters.dietType)) return false;
+      if (filters.mealType !== 'Tümü' && !(r.mealTypes?.some(mt => trLower(mt) === filterMealLower) || r.mealType === filters.mealType)) return false;
       if (filters.practicality !== 'Tümü' && r.practicality !== filters.practicality) return false;
       if (filters.transportability !== 'Tümü' && r.transportability !== filters.transportability) return false;
       if (filters.category !== 'Tümü' && r.category !== filters.category) return false;
@@ -162,7 +170,7 @@ export const NutritionProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (filters.status === 'Taslak' && !r.isDraft) return false;
       return true;
     });
-  }, [recipes, filters]);
+  }, [recipes, deferredSearch, filters.dietType, filters.mealType, filters.practicality, filters.transportability, filters.category, filters.status]);
 
   const turKompStats = useMemo(() => turKompMockService.getStats(), [foods.length]);
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Search, Plus, Clock, Trash2, ChevronRight, X, BookOpen, FolderPlus, Check, CheckSquare, Square
 } from 'lucide-react';
@@ -33,6 +33,7 @@ export const RecipeList: React.FC = () => {
 
   const [recipeToDelete, setRecipeToDelete] = useState<Recipe | null>(null);
   const [selectedRecipeIds, setSelectedRecipeIds] = useState<string[]>([]);
+  const selectedSet = useMemo(() => new Set(selectedRecipeIds), [selectedRecipeIds]);
   const [isBookletsModalOpen, setIsBookletsModalOpen] = useState(false);
   const [targetBookletId, setTargetBookletId] = useState('');
 
@@ -110,7 +111,7 @@ export const RecipeList: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRecipes.map(recipe => {
-          const isSelected = selectedRecipeIds.includes(recipe.id);
+          const isSelected = selectedSet.has(recipe.id);
           return (
             <div
               key={recipe.id} onClick={() => openDetail(recipe)}

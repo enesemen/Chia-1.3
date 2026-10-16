@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import {
   Layers, Zap, Search, Plus, Edit, Trash2, X, Save, Filter, Info, RotateCcw
 } from 'lucide-react';
 import { ExchangeFoodItem, INITIAL_EXCHANGE_FOODS } from '../../data/mockExchangeFoods';
+import { loadStoredArray, useDebouncedStorage } from '../../context/NutritionContext';
+import { trLower } from '../../services/recipePersonalizationEngine';
 import { ChiaAssistantBanner, ConfirmModal } from '../common/ChiaMascot';
 
 const LOCAL_STORAGE_KEY = 'nutriplan_exchange_foods_v1';
@@ -23,23 +25,11 @@ const EXCHANGE_STANDARDS = [
 
 export const ExchangeRulesView: React.FC = () => {
   const [showRulesInfo, setShowRulesInfo] = useState(false);
-
-  const [exchangeFoods, setExchangeFoods] = useState<ExchangeFoodItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return INITIAL_EXCHANGE_FOODS;
-  });
-
-  useEffect(() => {
-    try { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(exchangeFoods)); } catch {}
-  }, [exchangeFoods]);
+  const [exchangeFoods, setExchangeFoods] = useState<ExchangeFoodItem[]>(() => loadStoredArray(LOCAL_STORAGE_KEY, INITIAL_EXCHANGE_FOODS));
+  useDebouncedStorage(LOCAL_STORAGE_KEY, exchangeFoods);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredQuery = useDeferredValue(searchQuery);
   const [selectedGroup, setSelectedGroup] = useState<string>('Tümü');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ExchangeFoodItem | null>(null);
@@ -52,16 +42,16 @@ export const ExchangeRulesView: React.FC = () => {
   });
 
   const filteredFoods = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
+    const query = trLower(deferredQuery).trim();
     return exchangeFoods.filter(item => {
       if (selectedGroup !== 'Tümü' && item.group !== selectedGroup) return false;
       if (!query) return true;
       return (
-        item.name.toLowerCase().includes(query) || item.group.toLowerCase().includes(query) ||
-        item.subGroup.toLowerCase().includes(query) || item.equivalents.toLowerCase().includes(query) || item.clinicalNote.toLowerCase().includes(query)
+        trLower(item.name).includes(query) || trLower(item.group).includes(query) ||
+        trLower(item.subGroup).includes(query) || trLower(item.equivalents).includes(query) || trLower(item.clinicalNote).includes(query)
       );
     });
-  }, [exchangeFoods, selectedGroup, searchQuery]);
+  }, [exchangeFoods, selectedGroup, deferredQuery]);
 
   const handleOpenAddModal = () => {
     setEditingItem(null);

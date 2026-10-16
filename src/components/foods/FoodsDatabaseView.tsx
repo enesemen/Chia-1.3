@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { Search, Plus, Check } from 'lucide-react';
 import { useNutrition } from '../../context/NutritionContext';
 import { FoodCategory, FoodItem, FoodSource } from '../../types/nutrition';
+import { trLower } from '../../services/recipePersonalizationEngine';
 import { ChiaAssistantBanner } from '../common/ChiaMascot';
 
 const FOOD_CATEGORIES: (FoodCategory | 'Tümü')[] = [
@@ -22,6 +23,7 @@ const DEFAULT_UNIT_WEIGHTS: Record<string, number> = {
 export const FoodsDatabaseView: React.FC = () => {
   const { foods, addCustomFood } = useNutrition();
   const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
   const [selectedCategory, setSelectedCategory] = useState<FoodCategory | 'Tümü'>('Tümü');
   const [sourceFilter, setSourceFilter] = useState<'Tümü' | 'TürKomp' | 'USDA'>('Tümü');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -33,24 +35,24 @@ export const FoodsDatabaseView: React.FC = () => {
   }, [foods]);
 
   const filteredFoods = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = trLower(deferredSearch).trim();
     return foods.filter(food => {
       if (sourceFilter === 'TürKomp' && food.source !== 'TürKomp' && food.source) return false;
       if (sourceFilter === 'USDA' && food.source !== 'USDA') return false;
       if (selectedCategory !== 'Tümü' && food.category !== selectedCategory) return false;
       if (!q) return true;
       return (
-        food.name.toLowerCase().includes(q) || food.category.toLowerCase().includes(q) ||
-        food.foodCode?.toLowerCase().includes(q) || food.latinName?.toLowerCase().includes(q)
+        trLower(food.name).includes(q) || trLower(food.category).includes(q) ||
+        (food.foodCode && trLower(food.foodCode).includes(q)) || (food.latinName && trLower(food.latinName).includes(q))
       );
     });
-  }, [foods, search, sourceFilter, selectedCategory]);
+  }, [foods, deferredSearch, sourceFilter, selectedCategory]);
 
   const handleSaveCustomFood = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFoodForm.name.trim()) return;
     const unitKey = newFoodForm.defaultUnit.trim() || 'g';
-    const unitGrams = DEFAULT_UNIT_WEIGHTS[unitKey.toLowerCase()] ?? 10;
+    const unitGrams = DEFAULT_UNIT_WEIGHTS[trLower(unitKey)] ?? 10;
 
     const newFood: FoodItem = {
       id: `custom_food_${Date.now()}`,

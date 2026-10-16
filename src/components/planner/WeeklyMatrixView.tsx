@@ -9,6 +9,7 @@ import { WeeklyMenuPlan, PlannedMealItem, DailyMacroTargetGrams } from '../../ty
 import { Recipe } from '../../types/nutrition';
 import { getUnifiedRecipeIngredients } from '../../data/turkishRecipes';
 import { sortMealsByCanonicalOrder } from '../../services/menuPlanningEngine';
+import { detectGroceryCategory, trLower } from '../../services/recipePersonalizationEngine';
 
 interface WeeklyMatrixViewProps {
   plan: WeeklyMenuPlan;
@@ -21,7 +22,7 @@ interface WeeklyMatrixViewProps {
 }
 
 export const getMealFallbackImage = (mealName: string, recipeTitle?: string): string => {
-  const text = `${mealName} ${recipeTitle || ''}`.toLowerCase();
+  const text = trLower(`${mealName} ${recipeTitle || ''}`);
   if (/yulaf|oat|kahvaltı|omlet|yumurta|pancake/.test(text)) return 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=400&q=80';
   if (/somon|balık|salmon|fish|levrek|çipura/.test(text)) return 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=400&q=80';
   if (/tavuk|chicken|salata|salad|öğle/.test(text)) return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80';
@@ -31,7 +32,7 @@ export const getMealFallbackImage = (mealName: string, recipeTitle?: string): st
 };
 
 const getMealLabels = (mealName: string): { tr: string; en: string } => {
-  const l = mealName.toLowerCase();
+  const l = trLower(mealName);
   if (l.includes('kahvaltı') || l.includes('sabah')) return { tr: 'Kahvaltı', en: 'Breakfast' };
   if (l.includes('öğle')) return { tr: 'Öğle', en: 'Lunch' };
   if (l.includes('akşam')) return { tr: 'Akşam', en: 'Dinner' };
@@ -127,17 +128,11 @@ export const WeeklyMatrixView: React.FC<WeeklyMatrixViewProps> = ({
       rawList.forEach(ing => {
         const name = ing.name?.trim();
         if (!name) return;
-        const lower = name.toLowerCase();
-        const catKey =
-          /somon|tavuk|et|balık|hindi|köfte|dana|ton balığı|levrek|çipura|sucuk|yumurta/i.test(lower) ? 'protein' :
-          /domates|salatalık|marul|roka|maydanoz|dereotu|nane|limon|havuç|soğan|sarımsak|patates|kabak|patlıcan|muz|elma|ayva|avokado|kuşkonmaz|meyve|çilek|yaban mersini|biber|ıspanak|pazı|semizotu|brokoli|enginar|mantar|nar/i.test(lower) ? 'produce' :
-          /yoğurt|peynir|süt|kefir|lor|labne|tereyağı|parmesan|hellim|tulum|ayran/i.test(lower) ? 'dairy' :
-          /yulaf|mercimek|nohut|fasulye|barbunya|bulgur|kinoa|pirinç|un|makarna|ekmek|bazlama|lavaş|simit|grissini|kraker|ceviz|badem|chia|tohum|fındık|fıstık/i.test(lower) ? 'grains' : 'pantry';
-
+        const catKey = detectGroceryCategory(name);
         const amt = Number(ing.amount) || 1;
         const rawUnit = (ing.unit || 'adet').trim();
         const normalizedUnit = rawUnit.replace(/\s*\(.*?\)\s*/g, '').trim() || rawUnit;
-        const key = `${lower}__${normalizedUnit.toLowerCase()}`;
+        const key = `${trLower(name)}__${trLower(normalizedUnit)}`;
         const existing = categories[catKey].items.get(key);
         if (existing) existing.amount = Number((existing.amount + amt).toFixed(1));
         else categories[catKey].items.set(key, { name, amount: Number(amt.toFixed(1)), unit: normalizedUnit });

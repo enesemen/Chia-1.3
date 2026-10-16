@@ -1,40 +1,44 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { X, Search, Sparkles, Check } from 'lucide-react';
 import { Recipe, DietType } from '../../types/nutrition';
-import { PlannedMealItem, PersonalizedRecipeCopy } from '../../types/menuPlanner';
+import { PlannedMealItem, PersonalizedRecipeCopy, CalorieArchetypeLevel } from '../../types/menuPlanner';
 import { isRecipeCompatibleWithDiet, adaptRecipeToArchetypeAndMeal } from '../../services/menuPlanningEngine';
-import { personalizeRecipeForMeal } from '../../services/recipePersonalizationEngine';
+import { personalizeRecipeForMeal, trLower } from '../../services/recipePersonalizationEngine';
 
 interface RecipeSwapModalProps {
   isOpen: boolean; meal: PlannedMealItem | null; dayName: string; allRecipes: Recipe[];
   clientName?: string; dietCriteria?: DietType[]; excludedAllergies?: string[];
   activeBookletRecipeIds?: string[]; activeBookletTitle?: string;
+  activeArchetypeLevel?: CalorieArchetypeLevel;
   onSelectRecipe: (newRecipe: Recipe, personalizedCopy?: PersonalizedRecipeCopy) => void;
   onClose: () => void;
 }
 
 export const RecipeSwapModal: React.FC<RecipeSwapModalProps> = ({
   isOpen, meal, dayName, allRecipes, clientName, dietCriteria = [], excludedAllergies = [],
-  activeBookletRecipeIds, activeBookletTitle, onSelectRecipe, onClose
+  activeBookletRecipeIds, activeBookletTitle, activeArchetypeLevel = 'M1400' as CalorieArchetypeLevel, onSelectRecipe, onClose
 }) => {
   const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
   const [filterTransportOnly, setFilterTransportOnly] = useState(meal?.isPortableOnly || false);
   const [filterBookletOnly, setFilterBookletOnly] = useState(!!activeBookletRecipeIds?.length);
   const [filterDietCompatibleOnly, setFilterDietCompatibleOnly] = useState(true);
   const [autoAdaptToTarget, setAutoAdaptToTarget] = useState(true);
 
+  const bookletSet = useMemo(() => new Set(activeBookletRecipeIds || []), [activeBookletRecipeIds]);
+
   const filteredCandidates = useMemo(() => {
     if (!isOpen || !meal) return [];
-    const q = search.trim().toLowerCase();
+    const q = trLower(deferredSearch).trim();
     return allRecipes.filter(r => {
       if (r.isDraft) return false;
-      if (filterBookletOnly && activeBookletRecipeIds?.length && !activeBookletRecipeIds.includes(r.id)) return false;
+      if (filterBookletOnly && bookletSet.size > 0 && !bookletSet.has(r.id)) return false;
       if (filterDietCompatibleOnly && dietCriteria.length > 0 && !isRecipeCompatibleWithDiet(r, dietCriteria, excludedAllergies)) return false;
       if (filterTransportOnly && r.transportability !== 'Taşımaya Uygun') return false;
       if (!q) return true;
-      return r.name.toLowerCase().includes(q) || r.family?.toLowerCase().includes(q) || r.category?.toLowerCase().includes(q);
+      return trLower(r.name).includes(q) || (r.family && trLower(r.family).includes(q)) || (r.category && trLower(r.category).includes(q));
     });
-  }, [isOpen, meal, allRecipes, filterBookletOnly, activeBookletRecipeIds, filterDietCompatibleOnly, dietCriteria, excludedAllergies, filterTransportOnly, search]);
+  }, [isOpen, meal, allRecipes, filterBookletOnly, bookletSet, filterDietCompatibleOnly, dietCriteria, excludedAllergies, filterTransportOnly, deferredSearch]);
 
   if (!isOpen || !meal) return null;
 
@@ -45,7 +49,7 @@ export const RecipeSwapModal: React.FC<RecipeSwapModalProps> = ({
 
   const handleApplySelection = (candidate: Recipe) => {
     if (autoAdaptToTarget) {
-      const adapted = adaptRecipeToArchetypeAndMeal(candidate, 'M1400', meal.targetCalories, meal.targetMacros);
+      const adapted = adaptRecipeToArchetypeAndMeal(candidate, activeArchetypeLevel, meal.targetCalories, meal.targetMacros);
       const personalizedCopy = personalizeRecipeForMeal(candidate, adapted.calculatedExchanges, { fullName: clientName || 'Danışan' }, `plan_${clientName || 'Danisan'}_${dayName}`, meal.mealName, adapted.calculatedNutrition, adapted.portionMultiplier);
       onSelectRecipe(candidate, personalizedCopy);
     } else {

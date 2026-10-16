@@ -49,26 +49,40 @@ export const buildStandalonePrintHTML = (title: string, innerHtml: string, autoP
   ${autoPrint ? `<script>window.onload=function(){setTimeout(function(){try{window.focus();window.print();}catch(e){}},300);};</script>` : ''}
 </body></html>`;
 
+export const openHtmlPrintWindow = (html: string): boolean => {
+  try {
+    const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const opened = Boolean(window.open(blobUrl, '_blank'));
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    return opened;
+  } catch {
+    return false;
+  }
+};
+
+export const downloadHtmlBlob = (html: string, filename: string): void => {
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 export const printElementStandalone = (elementId: string, title: string) => {
   const el = document.getElementById(elementId);
   if (!el) { window.print(); return; }
-  const html = buildStandalonePrintHTML(title, el.innerHTML, true);
-  try {
-    const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
-    if (!window.open(blobUrl, '_blank')) { window.focus(); window.print(); }
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-  } catch { window.focus(); window.print(); }
+  if (!openHtmlPrintWindow(buildStandalonePrintHTML(title, el.innerHTML, true))) {
+    window.focus();
+    window.print();
+  }
 };
 
 export const downloadElementAsHTML = (elementId: string, title: string, suffix = 'El_Kitapcigi') => {
   const el = document.getElementById(elementId);
   if (!el) return;
-  const url = URL.createObjectURL(new Blob([buildStandalonePrintHTML(title, el.innerHTML, false)], { type: 'text/html;charset=utf-8' }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${title.replace(/[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ ]/g, '_')}_${suffix}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const filename = `${title.replace(/[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ ]/g, '_')}_${suffix}.html`;
+  downloadHtmlBlob(buildStandalonePrintHTML(title, el.innerHTML, false), filename);
 };
 
 export const generateRecipeCardPrintableHtml = (recipe: Recipe, ingredientLines: string[], steps: { stepNumber: number; instruction: string }[]) => {

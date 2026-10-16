@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   X, Plus, BookOpen, Printer, Trash2, Edit2, FolderPlus, Check, ArrowLeft
 } from 'lucide-react';
@@ -37,6 +37,7 @@ export const BookletsModal: React.FC<BookletsModalProps> = ({ isOpen, onClose, p
   const [isCreatingNew, setIsCreatingNew] = useState(preSelectedRecipeIds.length > 0);
   const [editingBookletId, setEditingBookletId] = useState<string | null>(null);
   const [formData, setFormData] = useState(() => createBookletForm(undefined, preSelectedRecipeIds));
+  const selectedSet = useMemo(() => new Set(formData.selectedRecipeIds), [formData.selectedRecipeIds]);
 
   if (!isOpen) return null;
 
@@ -147,7 +148,7 @@ export const BookletsModal: React.FC<BookletsModalProps> = ({ isOpen, onClose, p
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto p-2 bg-white rounded-xl border border-slate-200">
                     {recipes.map(recipe => {
-                      const isSelected = formData.selectedRecipeIds.includes(recipe.id);
+                      const isSelected = selectedSet.has(recipe.id);
                       return (
                         <div key={recipe.id} onClick={() => handleToggleRecipeInForm(recipe.id)} className={`p-2.5 rounded-lg border flex items-center justify-between gap-2 cursor-pointer transition-all ${isSelected ? 'bg-amber-50/80 border-amber-300 text-amber-950 font-semibold' : 'bg-stone-50/50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}>
                           <div className="flex items-center gap-2 overflow-hidden">

@@ -2,6 +2,7 @@ import { FoodItem, RecipeIngredient, RecipeTotalNutrition, RecipeExchanges, Reci
 import { INITIAL_FOODS } from '../data/mockFoods';
 import { computeRecipeDietaryFlags } from '../data/turkishRecipes';
 import { calculateIngredientNutrition, estimateExchangesFromIngredients, calculateRecipeTotalNutrition } from '../utils/nutritionCalculator';
+import { trLower } from './recipePersonalizationEngine';
 
 export interface TurKompDatabaseStats {
   totalFoods: number; turKompCount: number; usdaCount: number; categoriesCount: number;
@@ -30,7 +31,7 @@ export class TurKompDatabaseService {
     for (const food of this.foodList) {
       if (food.id) this.foodMapById.set(food.id, food);
       if (food.foodCode) this.foodMapByCode.set(food.foodCode.toUpperCase(), food);
-      if (food.name) this.foodMapByNameLower.set(food.name.toLowerCase().trim(), food);
+      if (food.name) this.foodMapByNameLower.set(trLower(food.name).trim(), food);
     }
   }
 
@@ -42,21 +43,21 @@ export class TurKompDatabaseService {
     if (this.foodMapById.has(cleanId)) return this.foodMapById.get(cleanId);
     const upperCode = cleanId.toUpperCase();
     if (this.foodMapByCode.has(upperCode)) return this.foodMapByCode.get(upperCode);
-    const lowerName = cleanId.toLowerCase();
+    const lowerName = trLower(cleanId);
     if (this.foodMapByNameLower.has(lowerName)) return this.foodMapByNameLower.get(lowerName);
-    return this.foodList.find(f => f.name.toLowerCase().includes(lowerName) || f.id.includes(lowerName));
+    return this.foodList.find(f => trLower(f.name).includes(lowerName) || f.id.includes(lowerName));
   }
 
   public searchFoods(query: string, sourceFilter: 'Tümü' | 'TürKomp' | 'USDA' = 'Tümü', categoryFilter = 'Tümü'): FoodItem[] {
-    const q = query.toLowerCase().trim();
+    const q = trLower(query).trim();
     return this.foodList.filter(food => {
       if (sourceFilter === 'TürKomp' && !(food.source === 'TürKomp' || (!food.source && food.foodCode?.startsWith('TK')))) return false;
       if (sourceFilter === 'USDA' && food.source !== 'USDA') return false;
       if (categoryFilter !== 'Tümü' && food.category !== categoryFilter) return false;
       if (!q) return true;
       return (
-        food.name.toLowerCase().includes(q) || food.foodCode?.toLowerCase().includes(q) ||
-        food.latinName?.toLowerCase().includes(q) || food.category.toLowerCase().includes(q) || food.notes?.toLowerCase().includes(q)
+        trLower(food.name).includes(q) || (food.foodCode && trLower(food.foodCode).includes(q)) ||
+        (food.latinName && trLower(food.latinName).includes(q)) || trLower(food.category).includes(q) || (food.notes && trLower(food.notes).includes(q))
       );
     });
   }

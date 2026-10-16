@@ -6,7 +6,7 @@ import {
   PlannedDayMenu, PlannedMealItem, RecipeVarietyStrategy,
   DailyMacroTargetGrams, MacroRatioConfig
 } from '../types/menuPlanner';
-import { personalizeRecipeForMeal, detectIngredientCategory } from './recipePersonalizationEngine';
+import { personalizeRecipeForMeal, detectIngredientCategory, trLower } from './recipePersonalizationEngine';
 import { calculateTargetMacroGrams, DEFAULT_MACRO_RATIOS, validateRecipeIntegrity, checkMacroCompliance } from '../utils/nutritionCalculator';
 
 export const DAYS_OF_WEEK: DayOfWeek[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
@@ -131,7 +131,7 @@ export const PAL_FACTORS: Record<string, { factor: number; label: string; desc: 
 export function getPALFactor(activityLevel: string): number {
   if (!activityLevel) return 1.1;
   if (PAL_FACTORS[activityLevel]) return PAL_FACTORS[activityLevel].factor;
-  const lower = activityLevel.toLowerCase();
+  const lower = trLower(activityLevel);
   if (lower.includes('sedanter') || lower.includes('masa')) return 1.0;
   if (lower.includes('hafif')) return 1.1;
   if (lower.includes('orta')) return 1.2;
@@ -205,8 +205,8 @@ export function normalizeDietCriterion(pref?: DietType): DietType[] {
 export function isRecipeCompatibleWithDiet(recipe: Recipe, dietCriteria: DietType | DietType[], excludedAllergies: string[] = []): boolean {
   const criteriaList = Array.isArray(dietCriteria) ? dietCriteria : [dietCriteria];
   const rDietTypes = recipe.dietTypes?.length ? recipe.dietTypes : [recipe.dietType || 'STD'];
-  const rTags = (recipe.tags || []).map(t => t.toLowerCase());
-  const rCategory = (recipe.category || '').toLowerCase();
+  const rTags = (recipe.tags || []).map(t => trLower(t));
+  const rCategory = trLower(recipe.category || '');
   const flags = recipe.dietaryFlags || computeRecipeDietaryFlags(recipe);
 
   for (const criterion of criteriaList) {
@@ -236,7 +236,7 @@ export function isRecipeCompatibleWithDiet(recipe: Recipe, dietCriteria: DietTyp
   }
 
   for (const allergy of excludedAllergies) {
-    const clean = allergy.trim().toLowerCase();
+    const clean = trLower(allergy.trim());
     if (!clean) continue;
     if (clean === 'gluten' && flags.hasGluten) return false;
     if ((clean === 'laktoz' || clean === 'süt') && flags.hasDairy) return false;
@@ -392,20 +392,26 @@ export function optimizeDayMenuMacros(
   if (currentDay.macroCompliance?.isAllCompliant) return currentDay;
 
   const mainMealsIndices = currentDay.meals.map((m, idx) => ({ m, idx })).filter(item => item.m.mealRole === 'Ana Öğün').map(item => item.idx);
+  const mealShareCount = Math.max(1, mainMealsIndices.length);
 
   for (let pass = 0; pass < maxPasses; pass++) {
     if (currentDay.macroCompliance?.isAllCompliant) break;
-    const targetMealIdx = mainMealsIndices[pass % mainMealsIndices.length] ?? 0;
+    const targetMealIdx = mainMealsIndices[pass % mealShareCount] ?? 0;
     const targetMeal = currentDay.meals[targetMealIdx];
 
     if (targetMeal?.selectedRecipe) {
-      const mealTargetCal = targetMeal.targetCalories;
-      const mealNormPct = targetMeal.targetPercentage || 25;
+      const damping = 0.65 / mealShareCount;
+      const baseCal = targetMeal.calculatedNutrition?.calories || targetMeal.targetCalories;
+      const baseP = targetMeal.calculatedNutrition?.protein || targetDailyMacros.proteinG * ((targetMeal.targetPercentage || 25) / 100);
+      const baseC = targetMeal.calculatedNutrition?.carbs || targetDailyMacros.carbG * ((targetMeal.targetPercentage || 25) / 100);
+      const baseF = targetMeal.calculatedNutrition?.fat || targetDailyMacros.fatG * ((targetMeal.targetPercentage || 25) / 100);
+
+      const mealTargetCal = Math.max(80, Math.round(baseCal - (currentDay.calorieDiff || 0) * damping));
       const mealTargetM = {
         calories: mealTargetCal,
-        proteinG: Number((targetDailyMacros.proteinG * (mealNormPct / 100)).toFixed(1)),
-        carbG: Number((targetDailyMacros.carbG * (mealNormPct / 100)).toFixed(1)),
-        fatG: Number((targetDailyMacros.fatG * (mealNormPct / 100)).toFixed(1))
+        proteinG: Math.max(4, Number((baseP - (currentDay.macroDiff?.proteinG || 0) * damping).toFixed(1))),
+        carbG: Math.max(4, Number((baseC - (currentDay.macroDiff?.carbG || 0) * damping).toFixed(1))),
+        fatG: Math.max(2, Number((baseF - (currentDay.macroDiff?.fatG || 0) * damping).toFixed(1)))
       };
       const adapted = adaptRecipeToArchetypeAndMeal(targetMeal.selectedRecipe, client.selectedArchetype, mealTargetCal, mealTargetM);
       const syncedPersonalizedCopy = personalizeRecipeForMeal(
@@ -422,6 +428,47 @@ export function optimizeDayMenuMacros(
     }
   }
   return currentDay;
+}
+
+export function recalculateWeeklyStats(
+  days: PlannedDayMenu[],
+  maxRecipeRepeatPerWeek: number,
+  recipeById?: ReadonlyMap<string, Recipe>
+): WeeklyMenuPlan['weeklyStats'] {
+  const usageCounts: Record<string, number> = {};
+  let totalWeeklyCal = 0, totalPortableMeals = 0, totalMealsCount = 0;
+
+  for (const d of days) {
+    totalWeeklyCal += d.totalCalories;
+    totalMealsCount += d.meals.length;
+    for (const m of d.meals) {
+      if (m.isPortableOnly) totalPortableMeals++;
+      const rId = m.selectedRecipe?.id;
+      if (rId) usageCounts[rId] = (usageCounts[rId] || 0) + 1;
+    }
+  }
+
+  const avgDailyCal = Math.round(totalWeeklyCal / (days.length || 1));
+  const uniqueRecipesCount = Object.keys(usageCounts).length;
+  const prepTimeSavingsPercent = totalMealsCount > 0 ? Math.max(0, Math.round(((totalMealsCount - uniqueRecipesCount) / totalMealsCount) * 100)) : 0;
+
+  const weeklyWarnings: string[] = [];
+  for (const [rId, count] of Object.entries(usageCounts)) {
+    if (count > maxRecipeRepeatPerWeek) {
+      const rObj = recipeById?.get(rId);
+      weeklyWarnings.push(`"${rObj?.name || rId}" reçetesi haftada ${count} kez kullanıldı (Maksimum önerilen: ${maxRecipeRepeatPerWeek}).`);
+    }
+  }
+
+  return {
+    averageDailyCalories: avgDailyCal,
+    repeatCountByRecipe: usageCounts,
+    uniqueRecipeCount: uniqueRecipesCount,
+    estimatedCookCount: uniqueRecipesCount,
+    prepTimeSavingsPercent,
+    portableMealCount: totalPortableMeals,
+    warnings: weeklyWarnings
+  };
 }
 
 export function generateWeeklyMenuPlan(
@@ -458,8 +505,8 @@ export function generateWeeklyMenuPlan(
     const pref = client.practicalityPreference;
     if (!pref || pref === 'all') return baseCandidatePool;
     const filtered = baseCandidatePool.filter(r => {
-      const p = (r.practicality || 'Kolay').toLowerCase();
-      return pref === 'kolay' ? p === 'kolay' : pref === 'kolay_orta' ? p === 'kolay' || p === 'orta' : pref === 'zor' ? p === 'zor' || p === 'i̇leri' || p === 'ileri' : true;
+      const p = trLower(r.practicality || 'Kolay');
+      return pref === 'kolay' ? p === 'kolay' : pref === 'kolay_orta' ? p === 'kolay' || p === 'orta' : pref === 'zor' ? p === 'zor' || p === 'ileri' : true;
     });
     return filtered.length > 0 ? filtered : baseCandidatePool;
   })();
@@ -531,9 +578,9 @@ export function generateWeeklyMenuPlan(
           const exchangeDistance = Math.abs((r.exchanges?.protein || 0) - defaultDist.exchanges.protein) * 2 + Math.abs((r.exchanges?.carb || 0) - defaultDist.exchanges.carb) * 1.5 + Math.abs((r.exchanges?.fat || 0) - defaultDist.exchanges.fat) * 1.5;
 
           let prefModifier = 0;
-          const rText = r.dietaryFlags?.allText || `${r.name} ${r.family || ''}`.toLowerCase();
-          for (const liked of client.preferences.likedFoods) if (liked.trim() && rText.includes(liked.trim().toLowerCase())) prefModifier -= 50;
-          for (const disliked of client.preferences.dislikedFoods) if (disliked.trim() && rText.includes(disliked.trim().toLowerCase())) prefModifier += 100;
+          const rText = r.dietaryFlags?.allText || trLower(`${r.name} ${r.family || ''}`);
+          for (const liked of client.preferences.likedFoods) if (liked.trim() && rText.includes(trLower(liked.trim()))) prefModifier -= 50;
+          for (const disliked of client.preferences.dislikedFoods) if (disliked.trim() && rText.includes(trLower(disliked.trim()))) prefModifier += 100;
 
           const repeatModifier = (usageCounts[r.id] || 0) * (varietyScore === 5 ? 400 : varietyScore === 4 ? 220 : 80);
           return { recipe: r, score: macroScore + exchangeDistance * 20 + prefModifier + repeatModifier };
@@ -601,29 +648,11 @@ export function generateWeeklyMenuPlan(
     days.push(initialDay.macroCompliance?.isAllCompliant ? initialDay : optimizeDayMenuMacros(initialDay, fixedDailyTargetMacros, client));
   }
 
-  const totalWeeklyCal = days.reduce((acc, d) => acc + d.totalCalories, 0);
-  const avgDailyCal = Math.round(totalWeeklyCal / (days.length || 1));
-  const totalPortableMeals = days.reduce((acc, d) => acc + d.meals.filter(m => m.isPortableOnly).length, 0);
-  const uniqueRecipesCount = Object.keys(usageCounts).length;
-  const totalMealsCount = days.reduce((acc, d) => acc + d.meals.length, 0);
-  const prepTimeSavingsPercent = totalMealsCount > 0 ? Math.max(0, Math.round(((totalMealsCount - uniqueRecipesCount) / totalMealsCount) * 100)) : 0;
-
-  const weeklyWarnings: string[] = [];
-  for (const [rId, count] of Object.entries(usageCounts)) {
-    if (count > maxRecipeRepeatPerWeek) {
-      const rObj = recipeById.get(rId);
-      weeklyWarnings.push(`"${rObj?.name || rId}" reçetesi haftada ${count} kez kullanıldı (Maksimum önerilen: ${maxRecipeRepeatPerWeek}).`);
-    }
-  }
-
   return {
     id: `plan-${Date.now()}`,
     client: { ...client, targetMacroRatios, varietyStrategy, varietyScore, maxRecipeRepeatPerWeek },
     selectedMeals: sortedSelectedMeals, daySchedules, days, targetMacroRatios, targetDailyMacros: fixedDailyTargetMacros,
-    weeklyStats: {
-      averageDailyCalories: avgDailyCal, repeatCountByRecipe: usageCounts, uniqueRecipeCount: uniqueRecipesCount,
-      estimatedCookCount: uniqueRecipesCount, prepTimeSavingsPercent, portableMealCount: totalPortableMeals, warnings: weeklyWarnings
-    },
+    weeklyStats: recalculateWeeklyStats(days, maxRecipeRepeatPerWeek, recipeById),
     calorieTolerancePercent, maxRecipeRepeatPerWeek, varietyStrategy, varietyScore,
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   };

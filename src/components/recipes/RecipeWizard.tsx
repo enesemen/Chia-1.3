@@ -106,7 +106,7 @@ export const RecipeWizard: React.FC = () => {
     if (!file) return;
     try {
       patchForm({ imageUrl: await compressImageFile(file, 800, 0.82) });
-    } catch { alert('Görsel işlenirken bir hata oluştu.'); }
+    } catch { setValidationError('Görsel işlenirken bir hata oluştu.'); }
   };
 
   const handleAddIngredient = () => {

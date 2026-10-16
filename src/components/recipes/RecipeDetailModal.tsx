@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useNutrition } from '../../context/NutritionContext';
 import { getUnifiedRecipeIngredients } from '../../data/turkishRecipes';
-import { compressImageFile, generateRecipeCardPrintableHtml } from '../../services/pdfExportService';
+import { compressImageFile, generateRecipeCardPrintableHtml, openHtmlPrintWindow, downloadHtmlBlob } from '../../services/pdfExportService';
 import { ConfirmModal } from '../common/ChiaMascot';
 
 export const RecipeDetailModal: React.FC = () => {
@@ -31,7 +31,7 @@ export const RecipeDetailModal: React.FC = () => {
       const compressedDataUrl = await compressImageFile(file, 800, 0.82);
       saveRecipe({ ...recipe, imageUrl: compressedDataUrl, updatedAt: new Date().toISOString() });
       triggerToast('Görsel optimize edilerek tarife kaydedildi!');
-    } catch { alert('Görsel işlenirken bir hata oluştu.'); }
+    } catch { triggerToast('Görsel işlenirken bir hata oluştu.'); }
   };
 
   const handleCreateVariation = () => {
@@ -62,27 +62,14 @@ export const RecipeDetailModal: React.FC = () => {
     displayIngredients.map(item => `${item.order}. ${item.name} - ${item.amountDisplay}${item.note ? ` (${item.note})` : ''}`.trim());
 
   const handlePrintPDF = () => {
-    try {
-      const printWin = window.open('', '_blank', 'width=800,height=900');
-      if (printWin) {
-        printWin.document.open();
-        printWin.document.write(generateRecipeCardPrintableHtml(recipe, getIngredientLines(), displaySteps));
-        printWin.document.close();
-        triggerToast('PDF baskı penceresi açıldı!');
-      } else window.print();
-    } catch { window.print(); }
+    const html = generateRecipeCardPrintableHtml(recipe, getIngredientLines(), displaySteps);
+    if (openHtmlPrintWindow(html)) triggerToast('PDF baskı penceresi açıldı!');
+    else window.print();
   };
 
   const handleDownloadHtmlCard = () => {
     const html = generateRecipeCardPrintableHtml(recipe, getIngredientLines(), displaySteps);
-    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Hale_Diyet_Recete_${recipe.name.replace(/\s+/g, '_')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadHtmlBlob(html, `Hale_Diyet_Recete_${recipe.name.replace(/\s+/g, '_')}.html`);
     triggerToast('Reçete PDF kartı indirildi! Dosyayı açıp hemen yazdırabilirsiniz.');
   };
 

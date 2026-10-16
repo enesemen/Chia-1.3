@@ -2,20 +2,36 @@ import { Recipe, RecipeExchanges, RecipeTotalNutrition } from '../types/nutritio
 import { getUnifiedRecipeIngredients } from '../data/turkishRecipes';
 import { PersonalizedRecipeCopy, AdaptedIngredientItem, MealPoolOption } from '../types/menuPlanner';
 
+export const trLower = (s: string): string => s.toLocaleLowerCase('tr-TR');
+
+const RE_DAIRY_PROTEIN = /kefir|yoğurt|yogurt|süt|peynir|lor|labne|kaşar|çökelek|hellim|tulum/;
+const RE_MEAT_PROTEIN = /yumurta|tavuk|hindi|somon|balık|levrek|çipura|hamsi|et|dana|kıyma|köfte|ton balığı|karides|sucuk/;
+const RE_PLANT_PROTEIN = /tofu|edamame|whey|protein/;
+const RE_DAIRY_ONLY = /kefir|süt|yoğurt|kefiri|ayran/;
+const RE_FAT = /keten tohumu|chia|zeytinyağ|zeytin|ceviz|badem|fındık|fıstık|tahin|avokado|tereyağ|sade yağ|ghee|susam|kabak çekirdeği/;
+const RE_CARB = /yulaf|ekmek|bazlama|simit|bulgur|pirinç|makarna|erişte|un|karabuğday|kinoa|patates|lavaş|tortilla|galeta|grissini|kraker|arpa|şehriye|irmik|nohut|fasulye|mercimek|barbunya/;
+const RE_FRUIT = /orman meyve|çilek|yaban mersini|ahududu|böğürtlen|muz|elma|ayva|armut|portakal|mandalina|kivi|incir|kayısı|hurma|kuru üzüm|kuru dut|nar|balkabağı/;
+const RE_VEG = /domates|salatalık|biber|marul|roka|maydanoz|dereotu|nane|fesleğen|ıspanak|pazı|semizotu|kabak|patlıcan|havuç|soğan|sarımsak|karnabahar|brokoli|kereviz|lahana|enginar|mantar|kuşkonmaz|pancar/;
+
 export function detectIngredientCategory(name: string): AdaptedIngredientItem['category'] {
-  const lower = name.toLowerCase();
-  if (
-    /kefir|yoğurt|yogurt|süt|peynir|lor|labne|kaşar|çökelek|hellim|tulum/i.test(lower) ||
-    /yumurta|tavuk|hindi|somon|balık|levrek|çipura|hamsi|et|dana|kıyma|köfte|ton balığı|karides|sucuk/i.test(lower) ||
-    /tofu|edamame|whey|protein/i.test(lower)
-  ) {
-    return /kefir|süt|yoğurt|kefiri|ayran/i.test(lower) ? 'dairy' : 'protein';
+  const lower = trLower(name);
+  if (RE_DAIRY_PROTEIN.test(lower) || RE_MEAT_PROTEIN.test(lower) || RE_PLANT_PROTEIN.test(lower)) {
+    return RE_DAIRY_ONLY.test(lower) ? 'dairy' : 'protein';
   }
-  if (/keten tohumu|chia|zeytinyağ|zeytin|ceviz|badem|fındık|fıstık|tahin|avokado|tereyağ|sade yağ|ghee|susam|kabak çekirdeği/i.test(lower)) return 'fat';
-  if (/yulaf|ekmek|bazlama|simit|bulgur|pirinç|makarna|erişte|un|karabuğday|kinoa|patates|lavaş|tortilla|galeta|grissini|kraker|arpa|şehriye|irmik|nohut|fasulye|mercimek|barbunya/i.test(lower)) return 'carb';
-  if (/orman meyve|çilek|yaban mersini|ahududu|böğürtlen|muz|elma|ayva|armut|portakal|mandalina|kivi|incir|kayısı|hurma|kuru üzüm|kuru dut|nar|balkabağı/i.test(lower)) return 'fruit';
-  if (/domates|salatalık|biber|marul|roka|maydanoz|dereotu|nane|fesleğen|ıspanak|pazı|semizotu|kabak|patlıcan|havuç|soğan|sarımsak|karnabahar|brokoli|kereviz|lahana|enginar|mantar|kuşkonmaz|pancar/i.test(lower)) return 'vegetable';
+  if (RE_FAT.test(lower)) return 'fat';
+  if (RE_CARB.test(lower)) return 'carb';
+  if (RE_FRUIT.test(lower)) return 'fruit';
+  if (RE_VEG.test(lower)) return 'vegetable';
   return 'other';
+}
+
+export function detectGroceryCategory(name: string): 'protein' | 'produce' | 'dairy' | 'grains' | 'pantry' {
+  const cat = detectIngredientCategory(name);
+  if (cat === 'dairy') return 'dairy';
+  if (cat === 'protein') return /peynir|lor|labne|kaşar|çökelek|hellim|tulum/.test(trLower(name)) ? 'dairy' : 'protein';
+  if (cat === 'vegetable' || cat === 'fruit') return 'produce';
+  if (cat === 'carb') return 'grains';
+  return 'pantry';
 }
 
 export function parseAmountAndUnit(amountStr: string | number): { amount: number; unit: string } {
@@ -30,7 +46,7 @@ export function parseAmountAndUnit(amountStr: string | number): { amount: number
 }
 
 export function formatScaledAmount(amount: number, unit: string): { amount: number; amountDisplay: string } {
-  const cleanUnit = unit.toLowerCase();
+  const cleanUnit = trLower(unit);
   let rounded = amount;
   if (cleanUnit === 'ml' || cleanUnit.includes('ml)')) {
     rounded = rounded >= 100 ? Math.round(rounded / 10) * 10 : Math.max(1, Math.round(rounded));

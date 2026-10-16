@@ -11,8 +11,10 @@ import {
 import {
   DAYS_OF_WEEK, ARCHETYPE_PRESETS, sortMealsByCanonicalOrder, autoDistributeMealPercentages,
   calculateBMR, calculateBMI, calculateTargetEnergyFromPAL, determineDefaultArchetype,
-  generateWeeklyMenuPlan, swapRecipeInDayMenu, optimizeDayMenuMacros, normalizeDietCriterion
+  generateWeeklyMenuPlan, swapRecipeInDayMenu, optimizeDayMenuMacros, normalizeDietCriterion,
+  recalculateWeeklyStats
 } from '../../services/menuPlanningEngine';
+import { trLower } from '../../services/recipePersonalizationEngine';
 import { calculateTargetMacroGrams } from '../../utils/nutritionCalculator';
 import { RecipeSwapModal } from './RecipeSwapModal';
 import { MenuPrintModal } from './MenuPrintModal';
@@ -56,7 +58,7 @@ export const MACRO_PRESETS: MacroPreset[] = [
 export { autoDistributeMealPercentages };
 
 export const MenuPlannerView: React.FC = () => {
-  const { recipes, booklets, clients, activePlannerClientId, setActivePlannerClientId } = useNutrition();
+  const { recipes, recipeMap, booklets, clients, activePlannerClientId, setActivePlannerClientId } = useNutrition();
 
   const [activeView, setActiveView] = useState<'panel' | 'matrix'>('panel');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -142,10 +144,11 @@ export const MenuPlannerView: React.FC = () => {
   const activeArchetypePreset = ARCHETYPE_PRESETS[activeArchetypeLevel];
   const targetMacroGrams = useMemo(() => calculateTargetMacroGrams(activeArchetypePreset.targetCalories, macroRatios), [activeArchetypePreset.targetCalories, macroRatios]);
 
-  const selectedBooklets = useMemo(() => booklets.filter(b => selectedBookletIds.includes(b.id)), [booklets, selectedBookletIds]);
+  const selectedBookletSet = useMemo(() => new Set(selectedBookletIds), [selectedBookletIds]);
+  const selectedBooklets = useMemo(() => booklets.filter(b => selectedBookletSet.has(b.id)), [booklets, selectedBookletSet]);
   const filteredBooklets = useMemo(() => {
-    const q = bookletSearchQuery.trim().toLowerCase();
-    return !q ? booklets : booklets.filter(b => [b.title, b.subtitle, b.description, b.notes, ...(b.tags || [])].some(s => s?.toLowerCase().includes(q)));
+    const q = trLower(bookletSearchQuery).trim();
+    return !q ? booklets : booklets.filter(b => [b.title, b.subtitle, b.description, b.notes, ...(b.tags || [])].some(s => s && trLower(s).includes(q)));
   }, [booklets, bookletSearchQuery]);
 
   const combinedBookletRecipeIds = useMemo(() => {
@@ -191,7 +194,12 @@ export const MenuPlannerView: React.FC = () => {
     const targetMacros = generatedPlan.targetDailyMacros || calculateTargetMacroGrams(targetDay.targetCalories, macroRatios);
     const updatedDays = [...generatedPlan.days];
     updatedDays[dayIndex] = optimizeDayMenuMacros(targetDay, targetMacros, generatedPlan.client, 12);
-    setGeneratedPlan({ ...generatedPlan, days: updatedDays, updatedAt: new Date().toISOString() });
+    setGeneratedPlan({
+      ...generatedPlan,
+      days: updatedDays,
+      weeklyStats: recalculateWeeklyStats(updatedDays, maxRecipeRepeatPerWeek, recipeMap),
+      updatedAt: new Date().toISOString()
+    });
     setOptimizationNotice(`✓ ${targetDay.day} menüsü başarıyla optimize edildi.`);
     setTimeout(() => setOptimizationNotice(null), 3500);
   };
@@ -199,9 +207,11 @@ export const MenuPlannerView: React.FC = () => {
   const handleReOptimizeAllDays = () => {
     if (!generatedPlan) return;
     const targetMacros = generatedPlan.targetDailyMacros || calculateTargetMacroGrams(activeArchetypePreset.targetCalories, macroRatios);
+    const updatedDays = generatedPlan.days.map(d => optimizeDayMenuMacros(d, targetMacros, generatedPlan.client, 12));
     setGeneratedPlan({
       ...generatedPlan,
-      days: generatedPlan.days.map(d => optimizeDayMenuMacros(d, targetMacros, generatedPlan.client, 12)),
+      days: updatedDays,
+      weeklyStats: recalculateWeeklyStats(updatedDays, maxRecipeRepeatPerWeek, recipeMap),
       updatedAt: new Date().toISOString()
     });
     setOptimizationNotice('✓ Tüm 7 günün menüsü hedeflere göre başarıyla yeniden optimize edildi.');
@@ -435,7 +445,7 @@ export const MenuPlannerView: React.FC = () => {
 
                     <div className="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
                       {filteredBooklets.length > 0 ? filteredBooklets.map(b => {
-                        const isChecked = selectedBookletIds.includes(b.id);
+                        const isChecked = selectedBookletSet.has(b.id);
                         return (
                           <label key={b.id} className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer text-xs ${isChecked ? 'bg-amber-50/80 border-amber-300 shadow-2xs font-semibold' : 'bg-white border-slate-200 hover:bg-stone-50/70 text-slate-700'}`}>
                             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -495,7 +505,7 @@ export const MenuPlannerView: React.FC = () => {
                 <label className="block font-semibold text-slate-700 text-xs mb-1">Hariç Tutulacak Alerjen / Gıdalar</label>
                 <div className="flex flex-wrap gap-1 mb-2">
                   {COMMON_ALLERGEN_SUGGESTIONS.map(allergen => {
-                    const isSelected = excludedAllergiesInput.toLowerCase().includes(allergen.toLowerCase());
+                    const isSelected = trLower(excludedAllergiesInput).includes(trLower(allergen));
                     return (
                       <button
                         key={allergen} type="button"
@@ -708,13 +718,19 @@ export const MenuPlannerView: React.FC = () => {
         dietCriteria={dietCriteria}
         excludedAllergies={excludedAllergiesInput.split(',').map(s => s.trim()).filter(Boolean)}
         activeBookletRecipeIds={recipeSourceType === 'selected_booklet' ? combinedBookletRecipeIds : undefined}
+        activeArchetypeLevel={activeArchetypeLevel}
         onSelectRecipe={(newRecipe, newAdapted) => {
           if (!generatedPlan) return;
           const targetDay = generatedPlan.days[swapModalState.dayIndex];
           if (!targetDay) return;
           const updatedDays = [...generatedPlan.days];
           updatedDays[swapModalState.dayIndex] = swapRecipeInDayMenu(targetDay, swapModalState.mealIndex, newRecipe, 3, activeArchetypeLevel, fullName, newAdapted);
-          setGeneratedPlan({ ...generatedPlan, days: updatedDays, updatedAt: new Date().toISOString() });
+          setGeneratedPlan({
+            ...generatedPlan,
+            days: updatedDays,
+            weeklyStats: recalculateWeeklyStats(updatedDays, maxRecipeRepeatPerWeek, recipeMap),
+            updatedAt: new Date().toISOString()
+          });
           setSwapModalState(prev => ({ ...prev, isOpen: false, meal: null }));
           setOptimizationNotice(`✓ ${targetDay.day} ${swapModalState.meal?.mealName || 'öğünü'} tarifi başarıyla değiştirildi!`);
           setTimeout(() => setOptimizationNotice(null), 3500);
